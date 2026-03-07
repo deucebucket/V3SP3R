@@ -113,6 +113,12 @@ dependencies {
 
     // Security / Encrypted SharedPrefs
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Protobuf (Flipper device protocol)
+    implementation("com.google.protobuf:protobuf-java:3.25.5")
+
+    // Diff utils
+    implementation("io.github.java-diff-utils:java-diff-utils:4.12")
 }
 
 kapt {
