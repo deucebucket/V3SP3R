@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "execute_command",
+  "description": "Execute a command on the Flipper Zero device. All file operations, device queries, and artifact pushes go through this interface.",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "list_directory",
+        "read_file",
+        "write_file",
+        "create_directory",
+        "delete",
+        "move",
+        "rename",
+        "copy",
+        "get_device_info",
+        "get_storage_info",
+        "push_artifact"
+      ],
+      "description": "The action to perform on the Flipper Zero"
+    },
+    "args": {
+      "type": "object",
+      "description": "Arguments for the action",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File or directory path on Flipper (e.g., /ext/subghz/garage.sub)"
+        },
+        "destination_path": {
+          "type": "string",
+          "description": "Destination path for move/copy operations"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content to write to file (for write_file action)"
+        },
+        "new_name": {
+          "type": "string",
+          "description": "New name for rename operation"
+        },
+        "recursive": {
+          "type": "boolean",
+          "description": "Whether to delete recursively (for delete action)",
+          "default": false
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["fap", "config", "data", "executable"],
+          "description": "Type of artifact being pushed"
+        },
+        "artifact_data": {
+          "type": "string",
+          "description": "Base64-encoded artifact data (for push_artifact action)"
+        }
+      }
+    },
+    "justification": {
+      "type": "string",
+      "description": "Explanation of why this action is being taken"
+    },
+    "expected_effect": {
+      "type": "string",
+      "description": "What you expect this action to accomplish"
+    }
+  },
+  "required": ["action", "args", "justification", "expected_effect"],
+  "examples": [
+    {
+      "action": "list_directory",
+      "args": {
+        "path": "/ext/subghz"
+      },
+      "justification": "User wants to see their SubGHz captures",
+      "expected_effect": "Return a list of .sub files in the SubGHz directory"
+    },
+    {
+      "action": "read_file",
+      "args": {
+        "path": "/ext/subghz/garage.sub"
+      },
+      "justification": "User wants to inspect the garage remote configuration",
+      "expected_effect": "Return the contents of the garage.sub file"
+    },
+    {
+      "action": "write_file",
+      "args": {
+        "path": "/ext/subghz/garage.sub",
+        "content": "Filetype: Flipper SubGhz Key File\nVersion: 1\nFrequency: 315000000\n..."
+      },
+      "justification": "User wants to change the frequency from 390MHz to 315MHz",
+      "expected_effect": "Update the garage.sub file with the new frequency"
+    },
+    {
+      "action": "delete",
+      "args": {
+        "path": "/ext/test",
+        "recursive": true
+      },
+      "justification": "User wants to clean up test files",
+      "expected_effect": "Remove the test directory and all its contents"
+    },
+    {
+      "action": "get_device_info",
+      "args": {},
+      "justification": "User wants to check device status",
+      "expected_effect": "Return battery level, firmware version, and hardware info"
+    }
+  ]
+}

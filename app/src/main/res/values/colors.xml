@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Vesper Brand Colors -->
+    <color name="vesper_primary">#FF6B35</color>
+    <color name="vesper_primary_dark">#E55A2B</color>
+    <color name="vesper_secondary">#2D3748</color>
+    <color name="vesper_accent">#48BB78</color>
+
+    <!-- Surface Colors -->
+    <color name="vesper_surface">#1A202C</color>
+    <color name="vesper_surface_variant">#2D3748</color>
+    <color name="vesper_background">#0D1117</color>
+
+    <!-- Text Colors -->
+    <color name="vesper_on_primary">#FFFFFF</color>
+    <color name="vesper_on_surface">#E2E8F0</color>
+    <color name="vesper_on_surface_variant">#A0AEC0</color>
+
+    <!-- Risk Colors -->
+    <color name="risk_low">#48BB78</color>
+    <color name="risk_medium">#ECC94B</color>
+    <color name="risk_high">#F56565</color>
+    <color name="risk_blocked">#9F7AEA</color>
+
+    <!-- Diff Colors -->
+    <color name="diff_added">#2F855A</color>
+    <color name="diff_removed">#C53030</color>
+    <color name="diff_changed">#B7791F</color>
+</resources>
