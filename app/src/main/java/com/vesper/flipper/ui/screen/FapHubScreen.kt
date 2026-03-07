@@ -87,7 +87,7 @@ fun FapHubScreen(
                 containerColor = Color.Transparent,
                 contentColor = Color.White,
                 indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
+                    TabRowDefaults.Indicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[if (activeTab == HubTab.APPS) 0 else 1]),
                         color = VesperOrange
                     )
