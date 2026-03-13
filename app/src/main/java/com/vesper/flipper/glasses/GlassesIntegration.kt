@@ -1,6 +1,7 @@
 package com.vesper.flipper.glasses
 
 import android.util.Log
+import com.vesper.flipper.ai.OpenRouterClient
 import com.vesper.flipper.ai.VesperAgent
 import com.vesper.flipper.data.SettingsStore
 import com.vesper.flipper.domain.model.*
@@ -27,11 +28,27 @@ import javax.inject.Singleton
 class GlassesIntegration @Inject constructor(
     val bridge: GlassesBridgeClient,
     private val vesperAgent: VesperAgent,
+    private val openRouterClient: OpenRouterClient,
     private val settingsStore: SettingsStore
 ) {
     companion object {
         private const val TAG = "GlassesIntegration"
         private const val PHOTO_HOLD_TIMEOUT_MS = 30_000L // 30s to combine photo with text/voice
+        private const val MAX_SPEECH_CHARS = 150 // ~5s of speech at normal pace
+
+        /**
+         * System prompt for the speech summarization LLM call.
+         * Designed to produce natural, conversational spoken output — not text summaries.
+         */
+        private const val SPEECH_SUMMARY_PROMPT =
+            "You are a voice assistant speaking through smart glasses. " +
+            "Compress the user's message into a single spoken sentence — " +
+            "casual, direct, like you're talking to a friend. " +
+            "Max 20 words. No markdown, no lists, no code, no punctuation tricks. " +
+            "Capture the core answer or action taken. " +
+            "If the message describes an error, say what went wrong in plain English. " +
+            "If the message is a factual answer, give just the fact. " +
+            "Never say \"here is a summary\" or \"in short\" — just speak the answer."
 
         // Voice patterns for approving/denying Flipper operations hands-free.
         // Use word-boundary regex to avoid false positives like "yesterday" → "yes".
@@ -342,7 +359,7 @@ class GlassesIntegration @Inject constructor(
             lastMsg.content.isNotBlank() &&
             lastMsg.toolCalls.isNullOrEmpty()
         ) {
-            // Summarize for TTS — first 2 sentences, max ~120 chars spoken
+            // Summarize for TTS — use LLM for intelligent compression
             val spokenText = summarizeForSpeech(lastMsg.content)
             bridge.sendResponse(spokenText)
             clearApprovalState()
@@ -352,11 +369,12 @@ class GlassesIntegration @Inject constructor(
     }
 
     /**
-     * Extract the first 1-2 sentences from a response for brief TTS.
-     * Targets ~5 seconds of speech (~15 words / ~120 chars).
+     * Compress an AI response into a brief spoken summary using the LLM.
+     * Falls back to simple truncation if the LLM call fails or the text is
+     * already short enough to speak directly.
      */
-    private fun summarizeForSpeech(text: String): String {
-        // Strip markdown formatting
+    private suspend fun summarizeForSpeech(text: String): String {
+        // Strip markdown for length check
         val clean = text
             .replace(Regex("```[\\s\\S]*?```"), "")
             .replace(Regex("\\[.*?]\\(.*?\\)"), "")
@@ -364,27 +382,33 @@ class GlassesIntegration @Inject constructor(
             .replace(Regex("\\n+"), " ")
             .trim()
 
-        if (clean.length <= 120) return clean
+        // Short enough to speak directly
+        if (clean.length <= MAX_SPEECH_CHARS) return clean
 
-        // Grab up to 2 sentences
-        val sentenceEnds = Regex("[.!?]\\s+|[.!?]$")
-        var endIndex = -1
-        var sentenceCount = 0
-        sentenceEnds.findAll(clean).forEach { match ->
-            if (sentenceCount < 2 && match.range.first < 200) {
-                endIndex = match.range.first + 1
-                sentenceCount++
-            }
+        // Use the LLM to intelligently summarize for speech
+        return try {
+            val result = openRouterClient.sendMessage(
+                message = clean,
+                customSystemPrompt = SPEECH_SUMMARY_PROMPT
+            )
+            result.getOrNull()?.trim()?.take(MAX_SPEECH_CHARS)
+                ?: truncateFallback(clean)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.w(TAG, "Speech summarization failed, using fallback: ${e.message}")
+            truncateFallback(clean)
         }
+    }
 
-        return if (endIndex > 0 && endIndex <= 200) {
-            clean.substring(0, endIndex).trim()
-        } else {
-            // No sentence boundary found — cut at word boundary near 120 chars
-            val cutoff = clean.take(120).lastIndexOf(' ')
-            if (cutoff > 40) clean.substring(0, cutoff).trim() + "."
-            else clean.take(120).trim() + "."
+    /** Fast fallback: grab first sentence, cut at word boundary. */
+    private fun truncateFallback(text: String): String {
+        val firstSentence = Regex("[.!?]\\s+|[.!?]$").find(text)
+        if (firstSentence != null && firstSentence.range.first < MAX_SPEECH_CHARS) {
+            return text.substring(0, firstSentence.range.first + 1).trim()
         }
+        val cutoff = text.take(MAX_SPEECH_CHARS).lastIndexOf(' ')
+        return if (cutoff > 40) text.substring(0, cutoff).trim() + "."
+        else text.take(MAX_SPEECH_CHARS).trim() + "."
     }
 
     /**
