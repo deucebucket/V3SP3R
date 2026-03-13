@@ -1,12 +1,13 @@
 package com.vesper.flipper.glasses
 
-import android.util.Base64
 import android.util.Log
 import com.vesper.flipper.ai.VesperAgent
 import com.vesper.flipper.data.SettingsStore
 import com.vesper.flipper.domain.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,7 +18,8 @@ import javax.inject.Singleton
  * - Voice transcriptions from glasses → VesperAgent as user messages
  * - Camera photos from glasses → VesperAgent as image attachments
  * - AI responses from VesperAgent → glasses for TTS + HUD display
- * - Flipper status events → glasses for HUD notifications
+ * - Agent progress narration → glasses for conversational status updates
+ * - Voice-based approval flow → hands-free Flipper command confirmation
  * - "Hey Vesper" wake word commands → immediate execution
  * - Photo auto-upload to chat pending images for combo with voice/text
  */
@@ -31,14 +33,15 @@ class GlassesIntegration @Inject constructor(
         private const val TAG = "GlassesIntegration"
         private const val PHOTO_HOLD_TIMEOUT_MS = 30_000L // 30s to combine photo with text/voice
 
-        // Voice patterns for approving/denying Flipper operations hands-free
-        private val APPROVE_PATTERNS = listOf(
-            "yes", "approve", "confirm", "do it", "go ahead",
-            "execute", "proceed", "affirmative", "yep", "yeah"
+        // Voice patterns for approving/denying Flipper operations hands-free.
+        // Use word-boundary regex to avoid false positives like "yesterday" → "yes".
+        private val APPROVE_REGEX = Regex(
+            """\b(yes|approve|confirm|do it|go ahead|execute|proceed|affirmative|yep|yeah)\b""",
+            RegexOption.IGNORE_CASE
         )
-        private val DENY_PATTERNS = listOf(
-            "no", "deny", "reject", "cancel", "stop",
-            "abort", "negative", "nope", "don't", "do not"
+        private val DENY_REGEX = Regex(
+            """\b(no|deny|reject|cancel|stop|abort|negative|nope|don't|do not)\b""",
+            RegexOption.IGNORE_CASE
         )
     }
 
@@ -57,10 +60,11 @@ class GlassesIntegration @Inject constructor(
     private var lastProcessedMessageCount = 0
     private var photoHoldJob: Job? = null
 
-    // Track whether we're waiting for a voice approval so we can intercept yes/no
-    @Volatile
+    // Mutex-protected approval state to prevent race between phone tap + voice approval
+    private val approvalMutex = Mutex()
     private var awaitingVoiceApproval = false
     private var pendingApprovalId: String? = null
+
     private var lastSpokenProgressStage: AgentProgressStage? = null
 
     /**
@@ -73,10 +77,15 @@ class GlassesIntegration @Inject constructor(
 
     /**
      * Disconnect from the glasses bridge and stop all listeners.
+     * Clears all pending state so stale approvals don't fire on reconnect.
      */
     fun disconnect() {
         stopListeners()
         bridge.disconnect()
+        clearApprovalState()
+        photoHoldJob?.cancel()
+        photoHoldJob = null
+        lastSpokenProgressStage = null
     }
 
     fun isConnected(): Boolean = bridge.isConnected()
@@ -92,12 +101,11 @@ class GlassesIntegration @Inject constructor(
         // (e.g. network error during sendMessage) doesn't kill the collector.
         messageListenerJob = scope.launch {
             bridge.incomingMessages.collect { message ->
-                scope.launch {
+                launch {
                     try {
                         handleGlassesMessage(message)
-                    } catch (e: CancellationException) {
-                        throw e
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         Log.e(TAG, "Error handling glasses message: ${e.message}", e)
                         bridge.sendStatus("Error: ${e.message?.take(60) ?: "unknown"}")
                     }
@@ -177,29 +185,7 @@ class GlassesIntegration @Inject constructor(
         Log.i(TAG, "Glasses voice: \"$text\"")
 
         // Intercept approval responses even on passive transcriptions
-        if (awaitingVoiceApproval && pendingApprovalId != null) {
-            val lowerText = text.lowercase()
-            when {
-                APPROVE_PATTERNS.any { lowerText.contains(it) } -> {
-                    Log.i(TAG, "Voice approval (transcription): \"$text\"")
-                    awaitingVoiceApproval = false
-                    val approvalId = pendingApprovalId!!
-                    pendingApprovalId = null
-                    bridge.sendStatus("Approved — executing")
-                    vesperAgent.continueAfterApproval(approvalId, approved = true)
-                    return
-                }
-                DENY_PATTERNS.any { lowerText.contains(it) } -> {
-                    Log.i(TAG, "Voice denial (transcription): \"$text\"")
-                    awaitingVoiceApproval = false
-                    val approvalId = pendingApprovalId!!
-                    pendingApprovalId = null
-                    bridge.sendStatus("Denied — cancelled")
-                    vesperAgent.continueAfterApproval(approvalId, approved = false)
-                    return
-                }
-            }
-        }
+        if (tryHandleApprovalVoice(text)) return
 
         val autoSend = settingsStore.glassesAutoSend.first()
         if (autoSend) {
@@ -261,33 +247,48 @@ class GlassesIntegration @Inject constructor(
         if (text.isBlank()) return
 
         // Check if this is a voice approval/rejection
-        if (awaitingVoiceApproval && pendingApprovalId != null) {
-            val lowerText = text.lowercase()
-            when {
-                APPROVE_PATTERNS.any { lowerText.contains(it) } -> {
-                    Log.i(TAG, "Voice approval: \"$text\"")
-                    awaitingVoiceApproval = false
-                    val approvalId = pendingApprovalId!!
-                    pendingApprovalId = null
-                    bridge.sendStatus("Approved — executing")
-                    vesperAgent.continueAfterApproval(approvalId, approved = true)
-                    return
-                }
-                DENY_PATTERNS.any { lowerText.contains(it) } -> {
-                    Log.i(TAG, "Voice denial: \"$text\"")
-                    awaitingVoiceApproval = false
-                    val approvalId = pendingApprovalId!!
-                    pendingApprovalId = null
-                    bridge.sendStatus("Denied — cancelled")
-                    vesperAgent.continueAfterApproval(approvalId, approved = false)
-                    return
-                }
-            }
-            // Not a yes/no — fall through to normal command handling
-        }
+        if (tryHandleApprovalVoice(text)) return
 
         Log.i(TAG, "Glasses command: \"$text\"")
         sendWithPendingPhoto(text)
+    }
+
+    /**
+     * Try to handle voice text as an approval/denial response.
+     * Uses mutex to prevent race with simultaneous phone-tap approval.
+     * Validates the approval is still live in VesperAgent before acting.
+     *
+     * @return true if the text was consumed as an approval/denial
+     */
+    private suspend fun tryHandleApprovalVoice(text: String): Boolean {
+        approvalMutex.withLock {
+            if (!awaitingVoiceApproval || pendingApprovalId == null) return false
+
+            // Verify the approval is still active in the agent (not already
+            // consumed by phone tap or expired)
+            val currentApproval = vesperAgent.conversationState.value.pendingApproval
+            if (currentApproval?.id != pendingApprovalId) {
+                Log.w(TAG, "Approval $pendingApprovalId already consumed or expired")
+                awaitingVoiceApproval = false
+                pendingApprovalId = null
+                return false
+            }
+
+            val approved = when {
+                APPROVE_REGEX.containsMatchIn(text) -> true
+                DENY_REGEX.containsMatchIn(text) -> false
+                else -> return false // Not an approval/denial phrase
+            }
+
+            Log.i(TAG, "Voice ${if (approved) "approval" else "denial"}: \"$text\"")
+            val approvalId = pendingApprovalId!!
+            awaitingVoiceApproval = false
+            pendingApprovalId = null
+
+            bridge.sendStatus(if (approved) "Approved — executing" else "Denied — cancelled")
+            vesperAgent.continueAfterApproval(approvalId, approved = approved)
+            return true
+        }
     }
 
     /**
@@ -345,8 +346,7 @@ class GlassesIntegration @Inject constructor(
         ) {
             // Final response — speak it through glasses
             bridge.sendResponse(lastMsg.content)
-            awaitingVoiceApproval = false
-            pendingApprovalId = null
+            clearApprovalState()
         }
 
         lastProcessedMessageCount = messages.size
@@ -386,7 +386,7 @@ class GlassesIntegration @Inject constructor(
         val spokenPrompt = buildString {
             append("Approval needed. ")
             append("${risk.level.name.lowercase()} risk. ")
-            append("$actionName")
+            append(actionName)
             if (path.isNotBlank()) append(" on $path")
             append(". ${risk.reason}. ")
             append("Say yes to approve, or no to deny.")
@@ -394,15 +394,29 @@ class GlassesIntegration @Inject constructor(
 
         Log.i(TAG, "Glasses approval prompt: $spokenPrompt")
 
-        // Arm voice approval interception
-        awaitingVoiceApproval = true
-        pendingApprovalId = approval.id
+        // Arm voice approval interception (thread-safe via mutex in tryHandleApprovalVoice)
+        scope.launch {
+            approvalMutex.withLock {
+                awaitingVoiceApproval = true
+                pendingApprovalId = approval.id
+            }
+        }
 
         // Speak + display on glasses
         bridge.sendResponse(
             text = spokenPrompt,
-            displayText = "⚠ ${risk.level}: $actionName ${path.takeLast(30)}\nSay YES or NO"
+            displayText = "${risk.level}: $actionName ${path.takeLast(30)}\nSay YES or NO"
         )
+    }
+
+    /**
+     * Clear approval state. Called on disconnect, final response, or session reset
+     * to prevent stale approvals from firing on reconnect.
+     */
+    private fun clearApprovalState() {
+        // Best-effort clear — no mutex needed since we're just resetting
+        awaitingVoiceApproval = false
+        pendingApprovalId = null
     }
 
     fun destroy() {
