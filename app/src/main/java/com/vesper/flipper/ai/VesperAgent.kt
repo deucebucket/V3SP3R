@@ -207,6 +207,19 @@ class VesperAgent @Inject constructor(
             settingsStore.aiMaxIterations.first()
         }.getOrDefault(SettingsStore.DEFAULT_AI_MAX_ITERATIONS)
 
+        // Pre-process image attachments so that text descriptions are baked into
+        // message content *before* the conversation state is updated. This ensures
+        // the persistence layer captures the descriptions instead of losing the
+        // transient image data that toEntity() cannot serialise.
+        val hasImages = currentMessages.any { !it.imageAttachments.isNullOrEmpty() }
+        if (hasImages) {
+            val apiKey = settingsStore.apiKey.first()
+            if (apiKey != null) {
+                val processed = openRouterClient.preprocessImagesAsText(currentMessages, apiKey)
+                currentMessages = processed.toMutableList()
+            }
+        }
+
         while (iterations < maxIterations) {
             iterations++
 

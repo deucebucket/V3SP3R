@@ -187,7 +187,7 @@ class OpenRouterClient @Inject constructor(
      * attachments with the text description. This allows the primary model
      * (which may not support images) to understand what the user photographed.
      */
-    private suspend fun preprocessImagesAsText(
+    internal suspend fun preprocessImagesAsText(
         messages: List<ChatMessage>,
         apiKey: String
     ): List<ChatMessage> = coroutineScope {
@@ -1212,7 +1212,7 @@ class OpenRouterClient @Inject constructor(
         private const val MAX_TOOL_CALLS_PER_RESPONSE = 1
         private const val TOOL_UNSUPPORTED_CACHE_MS = 5 * 60 * 1000L
         private const val MAX_CONTEXT_MESSAGES = 24
-        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 2048
+        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 1024
         private const val FORGE_RESPONSE_MAX_TOKENS = 6144
         private const val DEFAULT_RESPONSE_MAX_TOKENS = 720
 
@@ -1448,9 +1448,7 @@ class OpenRouterClient @Inject constructor(
                     )),
                     "required" to JsonArray(listOf(
                         JsonPrimitive("action"),
-                        JsonPrimitive("args"),
-                        JsonPrimitive("justification"),
-                        JsonPrimitive("expected_effect")
+                        JsonPrimitive("args")
                     ))
                 ))
             )
