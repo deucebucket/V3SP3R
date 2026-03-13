@@ -95,6 +95,7 @@ class GlassesIntegration @Inject constructor(
     private var pendingApprovalId: String? = null
 
     private var lastSpokenProgressStage: AgentProgressStage? = null
+    private var lastSpokenProgressDetail: String? = null
 
     /**
      * Connect to the glasses bridge and start relaying messages.
@@ -115,6 +116,7 @@ class GlassesIntegration @Inject constructor(
         photoHoldJob?.cancel()
         photoHoldJob = null
         lastSpokenProgressStage = null
+        lastSpokenProgressDetail = null
     }
 
     fun isConnected(): Boolean = bridge.isConnected()
@@ -450,24 +452,53 @@ class GlassesIntegration @Inject constructor(
     }
 
     /**
-     * Narrate agent progress through glasses — only key moments.
-     * Skips intermediate stages to avoid rapid-fire chatter.
+     * Narrate agent progress through glasses — key moments with enough
+     * feedback that the user knows things are working, without being chatty.
      */
     private fun handleProgressUpdate(progress: AgentProgress) {
-        // Avoid repeating the same stage
-        if (progress.stage == lastSpokenProgressStage) return
+        // Avoid repeating the exact same stage + detail combo
+        if (progress.stage == lastSpokenProgressStage &&
+            progress.detail == lastSpokenProgressDetail) return
         lastSpokenProgressStage = progress.stage
+        lastSpokenProgressDetail = progress.detail
 
-        // Only narrate start (thinking) and completion — skip intermediate stages
         val narration = when (progress.stage) {
-            AgentProgressStage.MODEL_REQUEST -> "Thinking..."
-            AgentProgressStage.TOOL_COMPLETED -> "Done."
-            AgentProgressStage.WAITING_APPROVAL -> return // Handled separately
-            else -> return // Skip TOOL_PLANNED and TOOL_EXECUTING to reduce chatter
-        }
+            AgentProgressStage.MODEL_REQUEST -> {
+                // First model call = "thinking", subsequent = brief context
+                if (progress.detail?.contains("Summarizing") == true) null
+                else "Thinking..."
+            }
+            AgentProgressStage.TOOL_PLANNED -> {
+                // "Running 3 tool calls..." — let user know work is happening
+                progress.detail?.let { briefNarration(it) }
+            }
+            AgentProgressStage.TOOL_EXECUTING -> {
+                // "Executing read_file..." — narrate the action
+                progress.detail?.let { briefNarration(it) }
+            }
+            AgentProgressStage.TOOL_COMPLETED -> {
+                // Only narrate failures — successes flow into the next stage naturally
+                if (progress.detail?.contains("failed", ignoreCase = true) == true) {
+                    progress.detail?.let { briefNarration(it) }
+                } else null
+            }
+            AgentProgressStage.WAITING_APPROVAL -> null // Handled by approval listener
+        } ?: return
 
         Log.d(TAG, "Glasses narration: $narration")
         bridge.sendStatus(narration)
+    }
+
+    /**
+     * Clean up a progress detail string for brief spoken narration.
+     * Strips technical noise and keeps it under ~60 chars.
+     */
+    private fun briefNarration(detail: String): String {
+        return detail
+            .replace(Regex("\\(.*?\\)"), "")  // strip "(3/10)" iteration counts
+            .replace("...", "")
+            .trim()
+            .take(60)
     }
 
     /**
