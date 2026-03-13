@@ -249,6 +249,17 @@ class ChatViewModel @Inject constructor(
      */
     fun isGlassesConnected(): Boolean = glassesIntegration.isConnected()
 
+    // Glasses mic mute — exposed for quick toggle in chat UI
+    val glassesMuted: StateFlow<Boolean> = settingsStore.glassesMuted
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun toggleGlassesMute() {
+        viewModelScope.launch {
+            val current = glassesMuted.value
+            settingsStore.setGlassesMuted(!current)
+        }
+    }
+
     /**
      * Stop current TTS playback
      */

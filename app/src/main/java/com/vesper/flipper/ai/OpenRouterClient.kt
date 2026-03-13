@@ -1138,7 +1138,7 @@ class OpenRouterClient @Inject constructor(
         private const val MAX_TOOL_CALLS_PER_RESPONSE = 1
         private const val TOOL_UNSUPPORTED_CACHE_MS = 5 * 60 * 1000L
         private const val MAX_CONTEXT_MESSAGES = 24
-        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 4096
+        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 2048
         private const val FORGE_RESPONSE_MAX_TOKENS = 6144
         private const val DEFAULT_RESPONSE_MAX_TOKENS = 720
 

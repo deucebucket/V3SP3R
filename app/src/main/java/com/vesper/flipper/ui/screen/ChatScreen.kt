@@ -68,6 +68,9 @@ fun ChatScreen(
     val pendingImages by viewModel.pendingImages.collectAsState()
     val isProcessingImage by viewModel.isProcessingImage.collectAsState()
     val imageError by viewModel.imageError.collectAsState()
+    val glassesBridgeState by viewModel.glassesBridgeState.collectAsState()
+    val glassesMuted by viewModel.glassesMuted.collectAsState()
+    val isGlassesConnected = glassesBridgeState is com.vesper.flipper.glasses.BridgeState.Connected
     val sessionHistory by viewModel.sessionHistory.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -330,7 +333,10 @@ fun ChatScreen(
                 isProcessingImage = isProcessingImage,
                 voiceState = voiceState,
                 voicePartialResult = voicePartialResult,
-                enabled = !conversationState.isLoading && conversationState.pendingApproval == null
+                enabled = !conversationState.isLoading && conversationState.pendingApproval == null,
+                isGlassesConnected = isGlassesConnected,
+                isGlassesMuted = glassesMuted,
+                onToggleGlassesMute = { viewModel.toggleGlassesMute() }
             )
         }
     ) { padding ->
@@ -852,7 +858,10 @@ private fun ChatInputBar(
     isProcessingImage: Boolean,
     voiceState: SpeechState,
     voicePartialResult: String,
-    enabled: Boolean
+    enabled: Boolean,
+    isGlassesConnected: Boolean = false,
+    isGlassesMuted: Boolean = false,
+    onToggleGlassesMute: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val hasContent = value.isNotBlank() || pendingImages.isNotEmpty()
@@ -949,29 +958,42 @@ private fun ChatInputBar(
                     }
                 }
 
-                // Voice input button
-                IconButton(
-                    onClick = {
-                        if (isListening) {
-                            onStopVoice()
-                        } else {
-                            onVoiceInput()
-                        }
-                    },
-                    enabled = enabled && !isProcessingImage
-                ) {
-                    if (isProcessingVoice) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = VesperOrange,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
+                // Mic button: glasses mute toggle when connected, voice input otherwise
+                if (isGlassesConnected) {
+                    IconButton(
+                        onClick = onToggleGlassesMute,
+                        enabled = enabled
+                    ) {
                         Icon(
-                            if (isListening) Icons.Default.Stop else Icons.Default.Mic,
-                            contentDescription = if (isListening) "Stop listening" else "Voice input",
-                            tint = VesperOrange
+                            if (isGlassesMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                            contentDescription = if (isGlassesMuted) "Unmute glasses mic" else "Mute glasses mic",
+                            tint = if (isGlassesMuted) MaterialTheme.colorScheme.error else VesperOrange
                         )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            if (isListening) {
+                                onStopVoice()
+                            } else {
+                                onVoiceInput()
+                            }
+                        },
+                        enabled = enabled && !isProcessingImage
+                    ) {
+                        if (isProcessingVoice) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = VesperOrange,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                if (isListening) Icons.Default.Stop else Icons.Default.Mic,
+                                contentDescription = if (isListening) "Stop listening" else "Voice input",
+                                tint = VesperOrange
+                            )
+                        }
                     }
                 }
 
