@@ -168,14 +168,19 @@ class GlassesBridgeClient @Inject constructor() {
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 isConnecting.set(false)
                 this@GlassesBridgeClient.webSocket = null
-                Log.i(TAG, "Bridge connection closed: $reason")
+                Log.i(TAG, "Bridge connection closed (code=$code): $reason")
+                if (code != 1000) {
+                    _state.value = BridgeState.Error("Connection closed: $reason (code $code)")
+                }
                 scheduleReconnect()
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 isConnecting.set(false)
                 this@GlassesBridgeClient.webSocket = null
-                Log.w(TAG, "Bridge connection failed: ${t.message}")
+                val reason = t.message ?: "unknown error"
+                Log.w(TAG, "Bridge connection failed: $reason", t)
+                _state.value = BridgeState.Error("Connection failed: $reason")
                 scheduleReconnect()
             }
         })
