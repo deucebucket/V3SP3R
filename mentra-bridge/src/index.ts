@@ -73,6 +73,29 @@ const wss = new WebSocketServer({ port: PORT });
 
 console.log(`V3SP3R Glasses Bridge running on port ${PORT}`);
 
+// ==================== Heartbeat (keeps connections alive through proxies) ====================
+
+const HEARTBEAT_INTERVAL_MS = 25_000; // 25s — safely under Cloudflare's 100s idle timeout
+
+function heartbeat(this: WebSocket & { isAlive?: boolean }) {
+  this.isAlive = true;
+}
+
+const heartbeatTimer = setInterval(() => {
+  for (const ws of wss.clients) {
+    const sock = ws as WebSocket & { isAlive?: boolean };
+    if (sock.isAlive === false) {
+      console.log("Terminating unresponsive client");
+      clients.delete(ws);
+      return ws.terminate();
+    }
+    sock.isAlive = false;
+    ws.ping();
+  }
+}, HEARTBEAT_INTERVAL_MS);
+
+wss.on("close", () => clearInterval(heartbeatTimer));
+
 wss.on("connection", (ws, req) => {
   const clientId = req.headers["x-vesper-client"] as string | undefined;
   const clientType = clientId === "v3sp3r-android" ? "vesper" : "unknown";
@@ -83,6 +106,8 @@ wss.on("connection", (ws, req) => {
     connectedAt: Date.now(),
   };
   clients.set(ws, client);
+  (ws as WebSocket & { isAlive?: boolean }).isAlive = true;
+  ws.on("pong", heartbeat);
 
   console.log(
     `Client connected: ${client.type} (${clients.size} total) from ${req.socket.remoteAddress}`
@@ -237,13 +262,18 @@ async function startMentraIntegration() {
           }
         );
 
-        // ── V3SP3R → Glasses (listen for AI responses on the relay) ──
-        // The relay server broadcasts to glasses clients, but for native
-        // MentraOS we also need to push through the session APIs.
-        const responseListener = setInterval(() => {
-          // This is handled by the relay broadcast to the glasses WebSocket
-          // client. For direct MentraOS sessions, we intercept below.
-        }, 60000);
+        // ── Session keepalive ────────────────────────────────────────
+        // Periodically poke the session so MentraOS doesn't idle-kill the
+        // mini app. Also serves as a health-check log line.
+        const keepaliveTimer = setInterval(async () => {
+          try {
+            await session.layouts.showTextWall("V3SP3R Active", {
+              durationMs: 1000,
+            });
+          } catch {
+            // Session may have ended — cleanup will handle it
+          }
+        }, 30_000);
 
         // Register a virtual "glasses" client for this MentraOS session
         // so relay broadcasts reach it.
@@ -267,7 +297,7 @@ async function startMentraIntegration() {
 
         // Cleanup on session end
         session.addCleanupHandler?.(() => {
-          clearInterval(responseListener);
+          clearInterval(keepaliveTimer);
           clients.delete(virtualWs);
           console.log(`[MentraOS] Session ended: ${sessionId}`);
         });
