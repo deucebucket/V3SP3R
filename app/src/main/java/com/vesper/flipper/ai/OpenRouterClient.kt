@@ -981,6 +981,7 @@ class OpenRouterClient @Inject constructor(
             CommandAction.BLE_SPAM -> emptyList()  // no required args
             CommandAction.LED_CONTROL -> emptyList()  // defaults to 0,0,0
             CommandAction.VIBRO_CONTROL -> emptyList()  // defaults to on
+            CommandAction.REQUEST_PHOTO -> emptyList()  // prompt is optional (has default)
         }
     }
 
@@ -1044,6 +1045,8 @@ class OpenRouterClient @Inject constructor(
                 """{"action":"download_resource","args":{"download_url":"https://raw.githubusercontent.com/...","path":"/ext/infrared/remote.ir"}}"""
             CommandAction.GITHUB_SEARCH ->
                 """{"action":"github_search","args":{"command":"Samsung TV remote extension:ir","search_scope":"code"}}"""
+            CommandAction.REQUEST_PHOTO ->
+                """{"action":"request_photo","args":{"prompt":"Describe what you see"}}"""
         }
     }
 
