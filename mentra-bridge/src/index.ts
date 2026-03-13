@@ -288,7 +288,7 @@ function handleMessage(sender: WebSocket, message: GlassesMessage) {
         if (visionTriggers.some((t) => lower.includes(t))) {
           console.log("[Relay] Vision trigger detected, requesting photo from glasses");
           broadcast(getGlassesClients(), {
-            type: "CAPTURE_REQUEST" as any,
+            type: "CAPTURE_REQUEST",
             text: message.text,
             metadata: { reason: "vision-trigger" },
           });
