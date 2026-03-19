@@ -242,12 +242,7 @@ class OpenRouterClient @Inject constructor(
             val visionMessages = listOf(
                 OpenRouterMessage.text(
                     role = "system",
-                    content = "You are a visual analysis assistant for a Flipper Zero companion app with smart glasses. " +
-                        "The user is wearing smart glasses and has captured a photo of what they're looking at. " +
-                        "Describe what you see in detail. Focus on: brand names, model numbers, " +
-                        "device types (TV, AC, car, remote control, gate, etc.), any visible text or labels, " +
-                        "and any details that would help identify the correct IR/RF/NFC protocol or signal. " +
-                        "Be specific and concise."
+                    content = VISION_SYSTEM_PROMPT
                 ),
                 OpenRouterMessage.multimodal(
                     role = "user",
@@ -304,11 +299,7 @@ class OpenRouterClient @Inject constructor(
             val visionMessages = listOf(
                 OpenRouterMessage.text(
                     role = "system",
-                    content = "You are a visual analysis assistant for a Flipper Zero companion app. " +
-                        "Describe what you see in the image in detail. Focus on: brand names, model numbers, " +
-                        "device types (TV, AC, car, remote control, etc.), any visible text or labels, " +
-                        "and any details that would help identify the correct IR/RF protocol or signal. " +
-                        "Be specific and concise."
+                    content = VISION_SYSTEM_PROMPT
                 ),
                 OpenRouterMessage.multimodal(
                     role = "user",
@@ -714,6 +705,18 @@ class OpenRouterClient @Inject constructor(
             val argsObject = when (argsElement) {
                 null -> JsonObject(emptyMap())
                 is JsonObject -> argsElement
+                is JsonArray -> {
+                    // Some models wrap args in a single-element array: "args": [{...}]
+                    if (argsElement.size == 1 && argsElement[0] is JsonObject) {
+                        argsElement[0] as JsonObject
+                    } else if (argsElement.isEmpty()) {
+                        JsonObject(emptyMap())
+                    } else {
+                        return ParsedCommand(
+                            error = "Field \"args\" must be a JSON object, got array with ${argsElement.size} elements."
+                        )
+                    }
+                }
                 is JsonPrimitive -> {
                     val inner = argsElement.contentOrNull.orEmpty()
                     if (inner.isBlank()) {
@@ -777,7 +780,7 @@ class OpenRouterClient @Inject constructor(
                 command = stringArg("command", "cmd", "query", "app_id", "appId", "app", "package", "name"),
                 path = stringArg("path", "file_path", "filepath"),
                 destinationPath = stringArg("destination_path", "destinationPath", "dest", "destination"),
-                content = stringArg("content", "text", "data", "download_url", "downloadUrl", "url"),
+                content = stringArg("content", "text", "data"),
                 newName = stringArg("new_name", "newName"),
                 recursive = booleanArg("recursive", "is_recursive") ?: false,
                 artifactType = stringArg("artifact_type", "artifactType"),
@@ -797,7 +800,14 @@ class OpenRouterClient @Inject constructor(
                 enabled = booleanArg("enabled", "on"),
                 red = intArg("red", "r"),
                 green = intArg("green", "g"),
-                blue = intArg("blue", "b")
+                blue = intArg("blue", "b"),
+                // Repo browsing / download / GitHub search fields
+                repoId = stringArg("repo_id", "repoId", "repo"),
+                subPath = stringArg("sub_path", "subPath"),
+                downloadUrl = stringArg("download_url", "downloadUrl", "url"),
+                searchScope = stringArg("search_scope", "searchScope", "scope"),
+                // Smartglasses camera
+                photoPrompt = stringArg("photo_prompt", "photoPrompt")
             )
 
             val missingArgs = missingRequiredArgs(action, args)
@@ -869,6 +879,7 @@ class OpenRouterClient @Inject constructor(
             "ble_spam", "blespam", "ble_advertisement_spam" -> CommandAction.BLE_SPAM
             "led_control", "set_led", "led" -> CommandAction.LED_CONTROL
             "vibro_control", "vibro", "vibration" -> CommandAction.VIBRO_CONTROL
+            "request_photo", "take_photo", "capture_photo", "photo", "snap_photo" -> CommandAction.REQUEST_PHOTO
             else -> null
         }
     }
@@ -1233,6 +1244,9 @@ class OpenRouterClient @Inject constructor(
             "execute_cli",
             "forge_payload",
             "search_resources",
+            "browse_repo",
+            "download_resource",
+            "github_search",
             "list_vault",
             "run_runbook",
             "launch_app",
@@ -1264,11 +1278,19 @@ class OpenRouterClient @Inject constructor(
         // primary tool model. Gemini Flash is ideal: fast, supports images, low cost.
         private const val VISION_PREPROCESSING_MODEL = "google/gemini-2.0-flash-001"
 
+        // Shared vision system prompt used by both image preprocessing and agent-initiated photo capture.
+        private const val VISION_SYSTEM_PROMPT =
+            "You are a visual analysis assistant for a Flipper Zero companion app. " +
+            "Describe what you see in the image in detail. Focus on: brand names, model numbers, " +
+            "device types (TV, AC, car, remote control, gate, etc.), any visible text or labels, " +
+            "and any details that would help identify the correct IR/RF/NFC protocol or signal. " +
+            "Be specific and concise."
+
         private val EXECUTE_COMMAND_TOOL = OpenRouterTool(
             type = "function",
             function = OpenRouterToolFunction(
                 name = "execute_command",
-                description = "Execute a Flipper operation. Supports file ops, device queries, FapHub, CLI commands, payload forging, resource search, repo browsing (browse_repo to list files via GitHub API), resource download (download_resource to fetch files to Flipper), vault scan, runbooks, hardware control (launch apps, transmit Sub-GHz/IR signals, emulate NFC/RFID/iButton, run BadUSB, BLE spam, LED and vibro control), AND smart glasses camera (request_photo to capture and analyze what the user sees).",
+                description = "Execute a Flipper Zero action. The 'action' enum lists all supported operations. Use 'args' for action-specific parameters.",
                 parameters = JsonObject(mapOf(
                     "type" to JsonPrimitive("object"),
                     "properties" to JsonObject(mapOf(
@@ -1439,11 +1461,11 @@ class OpenRouterClient @Inject constructor(
                         )),
                         "justification" to JsonObject(mapOf(
                             "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("Why this action is being taken")
+                            "description" to JsonPrimitive("Optional. Only include for MEDIUM/HIGH risk actions.")
                         )),
                         "expected_effect" to JsonObject(mapOf(
                             "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("What you expect this action to accomplish")
+                            "description" to JsonPrimitive("Optional. Only include for MEDIUM/HIGH risk actions.")
                         ))
                     )),
                     "required" to JsonArray(listOf(

@@ -1381,7 +1381,7 @@ class FlipperBleService : Service() {
                                 lastWriteFailureReason = "Gatt rejected write " +
                                         "(type=$writeType, attempt=${attemptIndex + 1}, retry=$retryIndex)"
                                 if (retryIndex < writeAttempts) {
-                                    delay(writeRetryDelayMs)
+                                    delay(writeRetryDelayMs * retryIndex)
                                 }
                                 continue
                             }
@@ -2437,25 +2437,25 @@ class FlipperBleService : Service() {
         private const val PREFS_BLE = "flipper_ble_prefs"
         private const val KEY_CONFIRMED_FLIPPER_ADDRESSES = "confirmed_flipper_addresses"
         private const val CONTROL_PACKET_MAX_BYTES = 96
-        private const val WRITE_ACK_TIMEOUT_MS = 1_500L
-        private const val WRITE_ACK_TIMEOUT_CONTROL_MS = 450L
+        private const val WRITE_ACK_TIMEOUT_MS = 3_000L
+        private const val WRITE_ACK_TIMEOUT_CONTROL_MS = 800L
         private const val WRITE_NO_RESPONSE_CHUNK_DELAY_MS = 8L
         private const val WRITE_NO_RESPONSE_CHUNK_DELAY_CONTROL_MS = 3L
-        private const val MAX_WRITE_START_ATTEMPTS = 3
-        private const val MAX_WRITE_START_ATTEMPTS_CONTROL = 2
-        private const val WRITE_START_RETRY_DELAY_MS = 40L
-        private const val WRITE_START_RETRY_DELAY_CONTROL_MS = 18L
-        private const val WRITE_MUTEX_STANDARD_WAIT_TIMEOUT_MS = 6_000L
-        private const val WRITE_MUTEX_CONTROL_WAIT_TIMEOUT_MS = 350L
-        private const val NOTIFICATION_READY_WAIT_ATTEMPTS = 6
+        private const val MAX_WRITE_START_ATTEMPTS = 5
+        private const val MAX_WRITE_START_ATTEMPTS_CONTROL = 3
+        private const val WRITE_START_RETRY_DELAY_MS = 80L
+        private const val WRITE_START_RETRY_DELAY_CONTROL_MS = 30L
+        private const val WRITE_MUTEX_STANDARD_WAIT_TIMEOUT_MS = 10_000L
+        private const val WRITE_MUTEX_CONTROL_WAIT_TIMEOUT_MS = 500L
+        private const val NOTIFICATION_READY_WAIT_ATTEMPTS = 20
         private const val NOTIFICATION_READY_POLL_MS = 50L
-        private const val COMMAND_TRANSPORT_READY_TIMEOUT_MS = 2_500L
+        private const val COMMAND_TRANSPORT_READY_TIMEOUT_MS = 5_000L
         private const val COMMAND_TRANSPORT_READY_POLL_MS = 50L
         private const val BLE_KEEPALIVE_INTERVAL_MS = 3_000L
         private const val BLE_KEEPALIVE_IDLE_THRESHOLD_MS = 3_500L
         private const val BLE_PRIORITY_REFRESH_INTERVAL_MS = 45_000L
-        private const val OVERFLOW_WAIT_TIMEOUT_MS = 1_200L
-        private const val OVERFLOW_WAIT_POLL_MS = 15L
+        private const val OVERFLOW_WAIT_TIMEOUT_MS = 3_000L
+        private const val OVERFLOW_WAIT_POLL_MS = 20L
         private const val OVERFLOW_VALUE_SIZE_BYTES = 4
         private const val DEFAULT_ATT_MTU = 23
         private const val REQUESTED_ATT_MTU = 517

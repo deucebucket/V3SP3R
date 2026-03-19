@@ -123,7 +123,7 @@ class FlipperProtocol @Inject constructor() {
                 failPendingRequest("Failed to write command over active transport$detail")
                 continue
             }
-            delay(10) // Small delay between writes
+            delay(15) // Small delay between writes to avoid overwhelming BLE link
         }
     }
 
@@ -510,10 +510,16 @@ class FlipperProtocol @Inject constructor() {
                 markCliUnavailable("Flipper command transport is not connected")
             }
         }
-        if (pendingRequest != null) {
-            return ProtocolResponse.Error(
-                "Command pipeline busy: pending legacy response not yet completed"
-            )
+        val stale = pendingRequest
+        if (stale != null) {
+            if (stale.continuation.isCompleted || stale.continuation.isCancelled) {
+                // Previous request finished or was cancelled but wasn't cleaned up.
+                this.pendingRequest = null
+            } else {
+                return ProtocolResponse.Error(
+                    "Command pipeline busy: pending legacy response not yet completed"
+                )
+            }
         }
 
         val deferred = CompletableDeferred<ProtocolResponse>()
@@ -1285,7 +1291,7 @@ class FlipperProtocol @Inject constructor() {
         private const val RAW_BINARY_QUIET_PERIOD_MS = 120L
         private const val CLI_TEXT_PRINTABLE_RATIO_MIN = 0.70
         private const val CLI_PROBE_CACHE_MS = 10_000L
-        private const val COMMAND_MUTEX_LOCK_TIMEOUT_MS = 8_000L
+        private const val COMMAND_MUTEX_LOCK_TIMEOUT_MS = 15_000L
         private const val COMMAND_MUTEX_LOCK_RPC_APP_TIMEOUT_MS = 30_000L
         private const val RPC_RESET_RETRY_DELAY_MS = 250L
         private const val RPC_SESSION_START_DELAY_MS = 250L
@@ -1313,7 +1319,7 @@ class FlipperProtocol @Inject constructor() {
         private const val RPC_STORAGE_WRITE_MAX_ATTEMPTS = 3
         private const val RPC_STORAGE_WRITE_RETRY_DELAY_MS = 300L
         private const val WRITE_CHUNK_SIZE = 512
-        private const val WRITE_CHUNK_DELAY_MS = 8L
+        private const val WRITE_CHUNK_DELAY_MS = 16L
         private const val RPC_CONTINUATION_COLLECT_WINDOW_MS = 900L
         private const val RPC_REMOTE_INPUT_ACK_TIMEOUT_MS = 900L
         private const val RPC_REMOTE_RELEASE_TIMEOUT_MS = 1_100L

@@ -1,237 +1,164 @@
-# Vesper - AI-Driven Flipper Zero Control for Android
+# V3SP3R — The AI Brain for Your Flipper Zero
 
-Vesper is an Android app that lets you control your Flipper Zero with AI. Just tell it what you want in plain English, and it does it.
+> **Talk to your Flipper Zero like it's a teammate.** Vesper turns your pocket hacking tool into an AI-powered command center — controlled entirely through natural language from your Android device.
+
+No menus. No manuals. Just tell it what you want.
 
 ---
 
-## Complete Beginner's Guide
+## Why Vesper?
 
-**Never used a Flipper Zero or built an Android app before?** This guide is for you.
+The Flipper Zero is one of the most versatile hardware hacking tools ever made — but navigating its menus, managing files, and crafting signals by hand is tedious. **Vesper eliminates the friction.** Plug in an AI brain via OpenRouter, connect over Bluetooth, and you have a voice-commanded hardware lab in your pocket.
+
+- **Instant expertise** — Don't memorize SubGHz protocols or IR formats. Just say what you want.
+- **Real-time control** — The AI reads your Flipper's state, executes commands, and reports back in seconds.
+- **Signal alchemy** — Build, layer, and export custom RF waveforms with a visual editor.
+- **Ops-grade reliability** — Built-in diagnostics, runbooks, and macro recording for repeatable workflows.
+- **Safety-first architecture** — Every AI action is risk-classified. Destructive operations require explicit confirmation. System paths are locked by default.
+
+Whether you're a security researcher, a red teamer, a CTF competitor, a hardware tinkerer, or just someone who wants to understand the invisible signals around you — Vesper makes the Flipper Zero *dramatically* more accessible and more powerful.
+
+---
+
+## Recommended AI Models
+
+Vesper works with any model on [OpenRouter](https://openrouter.ai). For the best experience, use the latest frontier models:
+
+| Model | Why Use It | Speed | Cost |
+|-------|-----------|-------|------|
+| **`nousresearch/hermes-4`** | Outstanding tool-use and instruction following — purpose-built for agentic workflows like Vesper. Top pick for power users. | Fast | $$ |
+| **`anthropic/claude-opus-4`** | The most capable reasoning model available. Exceptional at complex multi-step Flipper operations and signal analysis. | Medium | $$$$ |
+| **`anthropic/claude-sonnet-4`** | Best balance of speed, intelligence, and cost. Great default choice. | Fast | $$ |
+| **`anthropic/claude-haiku-4`** | Blazing fast for simple reads and quick commands. Cheapest option. | Fastest | $ |
+| **`openai/gpt-4o`** | Strong general-purpose alternative. | Fast | $$ |
+
+**Our recommendation:** Start with **Hermes 4** or **Claude Sonnet 4** for daily use. Reach for **Claude Opus 4** when you need deep reasoning — complex signal crafting, multi-step file operations, or creative BadUSB scripting.
+
+---
+
+## What Can You Do With It?
+
+### Chat — AI-Driven Flipper Control
+Talk to your Flipper in plain English:
+- *"Show me my SubGHz captures"*
+- *"What's my battery level?"*
+- *"Create a backup of all my IR remotes"*
+- *"Generate a BadUSB script that opens a reverse shell"*
+- *"Change the frequency in garage.sub to 315MHz"*
+
+### Ops Center — Operational Command Surface
+Built for reliability-obsessed users:
+- **Pipeline Health** — BLE/RPC/CLI readiness and diagnostics at a glance
+- **Runbooks** — One-tap recovery and smoke-test sequences
+- **Macro Recorder** — Record and replay button workflows with precise timing
+- **Live Status** — Transport and command pipeline behavior in one view
+
+### Alchemy Lab — Signal Synthesis
+Build custom RF signals from scratch:
+- Visual waveform editor with real-time preview
+- Layer and fuse multiple signal patterns
+- Export directly to your Flipper's SD card
+
+### Device Manager
+Full Flipper visibility:
+- Battery, storage, and connection status
+- Scan, pair, and manage BLE connections
+- Direct file browsing and management
+
+### Risk & Permissions Engine
+Every AI action is classified before execution:
+- **Low risk** — Read-only ops execute automatically
+- **Medium risk** — File writes show a diff for review
+- **High risk** — Destructive ops (delete, move, overwrite) require double-tap confirmation
+- **Blocked** — System/firmware paths require explicit unlock
+
+Configure **auto-approve** per risk tier in Settings to move faster when you trust the workflow.
+
+---
+
+## Quick Start
 
 ### What You Need
 
 | Item | Notes |
 |------|-------|
-| **Flipper Zero** | The device itself ([shop.flipperzero.one](https://shop.flipperzero.one)) |
-| **Android Phone** | Android 8.0 or newer, with Bluetooth |
-| **Computer** | Windows, Mac, or Linux - for building the app |
-| **OpenRouter Account** | Free to sign up, pay-per-use AI API |
+| **Flipper Zero** | [shop.flipperzero.one](https://shop.flipperzero.one) |
+| **Android Phone** | Android 8.0+, Bluetooth required |
+| **Computer** | Windows, Mac, or Linux — to build the app |
+| **OpenRouter Account** | Free signup, pay-per-use — [openrouter.ai](https://openrouter.ai) |
 
-### Step 1: Get Your Flipper Ready
+### 1. Prep Your Flipper
+1. Charge it up (USB-C)
+2. Update firmware via [qFlipper](https://flipperzero.one/update) (recommended)
+3. Enable Bluetooth: Settings → Bluetooth → ON
 
-1. **Unbox and charge** your Flipper Zero (USB-C cable included)
-2. **Update firmware** (optional but recommended):
-   - Go to [flipperzero.one/update](https://flipperzero.one/update)
-   - Download qFlipper for your computer
-   - Connect Flipper via USB, click Update
-3. **Enable Bluetooth** on Flipper:
-   - On Flipper: Settings → Bluetooth → ON
-   - Note the name shown (like "Flipper ABCD")
+### 2. Get an OpenRouter API Key
+1. Sign up at [openrouter.ai](https://openrouter.ai)
+2. Go to **Keys** → **Create Key**
+3. Copy the key (`sk-or-...`) — you'll paste this into Vesper later
+4. Add $5–10 in credits to start (most conversations cost pennies)
 
-### Step 2: Get an OpenRouter API Key
-
-Vesper uses AI through OpenRouter (works with Claude, GPT-4, etc.)
-
-1. Go to [openrouter.ai](https://openrouter.ai)
-2. Click **Sign Up** (use Google/GitHub for quick signup)
-3. Once logged in, go to **Keys** in the menu
-4. Click **Create Key**
-5. Copy the key that starts with `sk-or-...` — you'll need this later
-
-**Cost**: Most conversations cost $0.01-0.05. Add $5-10 to start.
-
-### Step 3: Install Android Studio
-
-This is the tool to build the app.
-
-**Windows:**
-1. Download from [developer.android.com/studio](https://developer.android.com/studio)
-2. Run the installer, click Next through everything
-3. Let it download (takes 10-20 minutes)
-
-**Mac:**
-1. Download the .dmg from the same link
-2. Drag Android Studio to Applications
-3. Open it, let it set up
-
-**Linux:**
-```bash
-sudo snap install android-studio --classic
-```
-
-### Step 4: Download Vesper
-
-Open a terminal (or Git Bash on Windows):
+### 3. Build the App
 
 ```bash
 git clone https://github.com/elder-plinius/V3SP3R.git
 cd V3SP3R
 ```
 
-**Don't have Git?**
-- Windows: Download from [git-scm.com](https://git-scm.com), install, use "Git Bash"
-- Mac: It'll prompt you to install when you type `git`
-- Linux: `sudo apt install git`
+Open the project in [Android Studio](https://developer.android.com/studio), let Gradle sync, then:
+- **Build → Build APK(s)** or hit the green hammer
+- APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-### Step 5: Build the App
+<details>
+<summary><strong>Don't have Git?</strong></summary>
 
-1. **Open Android Studio**
-2. Click **Open** and select the `V3SP3R` folder you downloaded
-3. Wait for it to sync (progress bar at bottom, takes 2-5 minutes)
-4. If it asks about Gradle, click **OK** or **Use default**
+- **Windows**: [git-scm.com](https://git-scm.com) → install → use Git Bash
+- **Mac**: Type `git` in Terminal — it'll prompt you to install
+- **Linux**: `sudo apt install git`
+</details>
 
-**Build the APK:**
-- Click the green hammer icon (Build) OR
-- Menu: **Build → Build Bundle(s) / APK(s) → Build APK(s)**
-- Wait 1-3 minutes
-- A popup says "APK(s) generated" — click **locate**
+### 4. Install on Your Phone
 
-The APK is at: `app/build/outputs/apk/debug/app-debug.apk`
+**Via USB (recommended):**
+1. Enable Developer Options: Settings → About Phone → tap "Build Number" 7 times
+2. Enable USB Debugging in Developer Options
+3. Connect phone via USB → hit Play (▶) in Android Studio
 
-### Step 6: Install on Your Phone
+**Via APK transfer:**
+1. Copy `app-debug.apk` to your phone
+2. Open it → allow "Install unknown apps" if prompted → Install
 
-**Option A: USB Cable (Easiest)**
-1. On your phone: Settings → About Phone → tap "Build Number" 7 times
-2. Go back, find "Developer Options" → enable "USB Debugging"
-3. Connect phone to computer via USB
-4. In Android Studio: Click the green Play button (▶️)
-5. Select your phone from the list
-
-**Option B: Transfer the APK**
-1. Copy `app-debug.apk` to your phone (email, Google Drive, USB)
-2. On phone: Open the file
-3. If blocked: Settings → Security → "Install unknown apps" → allow
-4. Tap Install
-
-### Step 7: First Launch
-
-1. **Open Vesper** on your phone
-2. **Grant permissions** when asked:
-   - Bluetooth: YES (needed to talk to Flipper)
-   - Location: YES (Android requires this for Bluetooth scanning)
-   - Notifications: YES (optional, for connection alerts)
-
-3. **Add your API Key:**
-   - Tap the **Device** tab (Bluetooth icon)
-   - Tap **Settings** (gear icon)
-   - Find "OpenRouter API Key"
-   - Paste your `sk-or-...` key
-
-4. **Connect to Flipper:**
-   - Make sure Flipper is on with Bluetooth enabled
-   - In Vesper, go to **Device** tab
-   - Tap **Scan**
-   - Tap your Flipper when it appears
-   - Wait for "Connected" status
-
-5. **Start using it:**
-   - Go to **Chat** tab
-   - Type: "What files are on my SD card?"
-   - Watch the magic happen
+### 5. First Launch
+1. **Grant permissions** — Bluetooth, Location (required for BLE scanning), Notifications
+2. **Add your API key** — Device tab → Settings → paste your OpenRouter key
+3. **Connect** — Device tab → Scan → tap your Flipper
+4. **Go** — Chat tab → start talking to your Flipper
 
 ---
 
-## Features Overview
+## Example Commands
 
-### Chat (AI Control)
-Talk to your Flipper in plain English:
-- "Show me my SubGHz captures"
-- "What's my battery level?"
-- "Create a backup of all my IR remotes"
-
-### Ops Center
-Operational control surface for connection reliability:
-- **Pipeline Health**: BLE/RPC/CLI readiness and diagnostics summary
-- **Runbooks**: One-tap recovery and smoke-test sequences
-- **Macro Recorder**: Record/replay remote button workflows with timing
-- **Live Status**: See transport and command pipeline behavior in one place
-
-### Alchemy (Signal Lab)
-Build custom RF signals from scratch:
-- Visual waveform editor
-- Layer multiple signal patterns
-- Export directly to Flipper
-
-### Device
-Manage your Flipper connection:
-- Battery status
-- Storage info
-- Connection controls
-
-### Risk & Permissions
-All AI actions are classified by risk before execution:
-- **Low**: Read-only operations execute automatically
-- **Medium**: File writes show a diff for review before applying
-- **High**: Destructive ops (delete, move, overwrite) require double-tap confirmation
-- **Blocked**: System/firmware paths require explicit unlock in settings
-
-You can configure **auto-approve** per tier in Settings → Permissions to skip confirmation dialogs for medium and/or high risk actions.
-
----
-
-## Troubleshooting for Beginners
-
-### "Flipper not found when scanning"
-1. On Flipper: Settings → Bluetooth → make sure it's ON
-2. On phone: Turn Bluetooth off and on
-3. Make sure Flipper isn't connected to another device
-4. Try moving closer (within 3 feet)
-
-### "Build failed" in Android Studio
-1. File → Sync Project with Gradle Files
-2. Build → Clean Project, then Build → Rebuild Project
-3. Close Android Studio, delete the `.gradle` folder, reopen
-
-### "App crashes on launch"
-1. Make sure you granted all permissions
-2. Try uninstalling and reinstalling
-3. Check that your phone is Android 8.0+
-
-### "AI not responding"
-1. Check your OpenRouter API key is correct
-2. Make sure you have credits in your OpenRouter account
-3. Check your internet connection
-
-### "Permission denied" errors
-- Some Flipper paths are protected (system files, firmware areas)
-- Go to Settings → Permissions to unlock specific protected paths
-- You can enable **auto-approve** per risk tier in Settings → Permissions:
-  - **Medium risk**: Auto-approve file writes within project scope (skips diff review)
-  - **High risk**: Auto-approve destructive actions like deletes and moves (skips confirmation)
-- Blocked paths (system/firmware) always require manual unlock regardless of auto-approve settings
-
----
-
-## Example Commands to Try
-
-Once connected, try these in the Chat:
-
+**Basics:**
 ```
 "What's on my SD card?"
-"Show me my SubGHz folder"
-"What's my battery at?"
-"Read my garage.sub file"
-"List all my IR remotes"
 "How much storage do I have left?"
+"What's my battery at?"
 ```
 
-More advanced:
+**File operations:**
 ```
-"Create a new folder called 'backups'"
-"Copy all .sub files to the backups folder"
+"Show me my SubGHz folder"
+"Read my garage.sub file"
+"Create a new folder called backups"
+"Copy all .sub files to backups"
+```
+
+**Advanced:**
+```
 "Change the frequency in garage.sub to 315MHz"
 "Generate a BadUSB script that opens notepad and types hello"
+"List all IR remotes and back them up"
 ```
-
----
-
-## Safety & Legal
-
-- This is a tool for learning and legitimate security research
-- Only use on devices you own or have permission to test
-- BLE spam attacks may be illegal in public spaces
-- The AI will refuse clearly malicious requests
-- All actions are logged for your review
 
 ---
 
@@ -261,8 +188,6 @@ More advanced:
 └─────────────────────────────────────────┘
 ```
 
----
-
 ## Project Structure
 
 ```
@@ -289,42 +214,82 @@ app/src/main/java/com/vesper/flipper/
 
 ---
 
-## OpenRouter Models
+## Troubleshooting
 
-Vesper supports these AI models:
+<details>
+<summary><strong>Flipper not found when scanning</strong></summary>
 
-| Model | Speed | Quality | Cost |
-|-------|-------|---------|------|
-| claude-3-5-sonnet | Fast | Excellent | $$ |
-| claude-3-opus | Slow | Best | $$$$ |
-| claude-3-haiku | Fastest | Good | $ |
-| gpt-4-turbo | Medium | Excellent | $$$ |
-| gpt-4o | Fast | Excellent | $$ |
+1. On Flipper: Settings → Bluetooth → make sure it's ON
+2. Toggle Bluetooth off/on on your phone
+3. Make sure Flipper isn't connected to another device
+4. Move within 3 feet
+</details>
 
-Default is Claude 3.5 Sonnet (best balance).
+<details>
+<summary><strong>Build failed in Android Studio</strong></summary>
+
+1. File → Sync Project with Gradle Files
+2. Build → Clean Project → Rebuild Project
+3. Nuclear option: close Android Studio, delete `.gradle` folder, reopen
+</details>
+
+<details>
+<summary><strong>App crashes on launch</strong></summary>
+
+1. Ensure all permissions are granted
+2. Uninstall and reinstall
+3. Confirm Android 8.0+
+</details>
+
+<details>
+<summary><strong>AI not responding</strong></summary>
+
+1. Verify your OpenRouter API key
+2. Check your OpenRouter credit balance
+3. Check internet connection
+</details>
+
+<details>
+<summary><strong>Permission denied errors</strong></summary>
+
+- Some Flipper paths are protected by default (system files, firmware areas)
+- Go to Settings → Permissions to unlock specific paths
+- Enable auto-approve per risk tier to move faster
+- Blocked paths always require manual unlock regardless of auto-approve settings
+</details>
+
+---
+
+## Safety & Legal
+
+- Vesper is a tool for **education and legitimate security research**
+- Only use on devices you own or have explicit authorization to test
+- All AI actions are logged and auditable
+- The AI refuses clearly malicious requests
+- Destructive operations require explicit user confirmation
 
 ---
 
 ## Contributing
 
-Pull requests welcome! Areas that need work:
+PRs welcome. Areas that need love:
 - iOS version
-- More signal format parsers
-- Additional attack presets
-- UI improvements
+- Signal format parsers
+- New attack presets & templates
+- UI/UX improvements
 
 ---
 
 ## License
 
-MIT License - see LICENSE file.
+MIT License — see [LICENSE](LICENSE).
 
 ---
 
 ## Disclaimer
 
-Vesper is for educational purposes and legitimate security research. Users are responsible for complying with local laws. The authors assume no liability for misuse.
+Vesper is for educational purposes and authorized security research. Users are responsible for complying with all applicable laws. The authors assume no liability for misuse.
 
 ---
 
-**Vesper** - AI-powered hardware hacking, in your pocket.
+**V3SP3R** — AI-powered hardware hacking, in your pocket. Your Flipper Zero just got a brain upgrade.
