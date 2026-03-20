@@ -132,18 +132,43 @@ class VesperAgent @Inject constructor(
 
     /**
      * Retry the last AI request by re-submitting the current conversation
-     * (minus any trailing error/incomplete assistant messages) back to the model.
+     * back to the model. Only strips the final failed assistant turn —
+     * earlier successful tool exchanges are preserved to avoid re-triggering
+     * side-effecting commands on the Flipper.
      */
     suspend fun retryLastMessage(): ConversationState {
         val current = _conversationState.value
         if (current.isLoading) return current
 
-        // Strip trailing assistant/tool messages that represent the failed attempt
+        // Find the safe rollback point: keep everything up to and including the
+        // last TOOL message with successful results (a completed exchange), or
+        // the last USER message — whichever comes later.
         val messages = current.messages.toMutableList()
-        while (messages.isNotEmpty()) {
-            val last = messages.last()
-            if (last.role == MessageRole.USER) break
-            messages.removeAt(messages.size - 1)
+        var cutIndex = messages.size
+        for (i in messages.indices.reversed()) {
+            val msg = messages[i]
+            when {
+                // Stop at a user message — this is the prompt we'll retry from
+                msg.role == MessageRole.USER -> { cutIndex = i + 1; break }
+                // Stop at a completed tool result — the exchange before this succeeded
+                msg.role == MessageRole.TOOL && msg.toolResults?.any { it.success } == true -> {
+                    cutIndex = i + 1; break
+                }
+            }
+        }
+
+        // Nothing to retry if we'd keep everything or the list is empty
+        if (cutIndex >= messages.size || cutIndex == 0) {
+            if (current.error != null) {
+                // Re-submit current messages as-is (e.g. API error, no assistant msg added)
+            } else {
+                return current
+            }
+        } else {
+            // Remove messages from the failed turn onwards
+            while (messages.size > cutIndex) {
+                messages.removeAt(messages.size - 1)
+            }
         }
 
         if (messages.isEmpty()) return current
