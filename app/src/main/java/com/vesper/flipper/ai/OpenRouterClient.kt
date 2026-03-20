@@ -567,10 +567,9 @@ class OpenRouterClient @Inject constructor(
 
             val message = choice.message
 
-            // Extract content — handle both string and array-of-parts formats.
-            // Some providers (especially Gemini via OpenRouter) may return content
-            // as an array: [{"type":"text","text":"..."}] instead of a plain string.
-            val content = message.content ?: extractContentFromRaw(root)
+            // Extract content — OpenRouterResponseMessage.textContent handles
+            // both plain string and array-of-parts formats transparently.
+            val content = message.textContent ?: ""
 
             // Validate tool calls if present
             val rawToolCalls = message.toolCalls
@@ -603,33 +602,6 @@ class OpenRouterClient @Inject constructor(
         } catch (e: Exception) {
             ChatCompletionResult.Error("Failed to parse response: ${e.message}")
         }
-    }
-
-    /**
-     * Fallback content extraction from raw JSON when kotlinx deserialization
-     * returns null (e.g. content is an array of parts instead of a plain string).
-     */
-    private fun extractContentFromRaw(root: JsonObject): String {
-        try {
-            val messageObj = root["choices"]?.jsonArray
-                ?.firstOrNull()?.jsonObject
-                ?.get("message")?.jsonObject ?: return ""
-
-            // Try plain string first
-            messageObj["content"]?.jsonPrimitive?.contentOrNull?.let { return it }
-
-            // Try array-of-parts format: [{"type":"text","text":"..."},...]
-            messageObj["content"]?.jsonArray?.let { parts ->
-                return parts.mapNotNull { part ->
-                    part.jsonObject.takeIf {
-                        it["type"]?.jsonPrimitive?.contentOrNull == "text"
-                    }?.get("text")?.jsonPrimitive?.contentOrNull
-                }.joinToString("\n")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "extractContentFromRaw: fallback extraction failed: ${e.message}")
-        }
-        return ""
     }
 
     private fun sanitizeAndBuildRequestMessages(messages: List<ChatMessage>): List<OpenRouterMessage> {
@@ -1790,10 +1762,28 @@ data class OpenRouterChoice(
 @Serializable
 data class OpenRouterResponseMessage(
     val role: String,
-    val content: String? = null,
+    val content: JsonElement? = null,
     @SerialName("tool_calls")
     val toolCalls: List<OpenRouterToolCall>? = null
-)
+) {
+    /**
+     * Extract the text content regardless of whether it arrived as a plain
+     * string or as an array of content parts (e.g. Gemini via OpenRouter).
+     */
+    val textContent: String?
+        get() = when {
+            content == null -> null
+            content is JsonPrimitive -> content.jsonPrimitive.contentOrNull
+            content is JsonArray -> {
+                content.jsonArray.mapNotNull { part ->
+                    part.jsonObject.takeIf {
+                        it["type"]?.jsonPrimitive?.contentOrNull == "text"
+                    }?.get("text")?.jsonPrimitive?.contentOrNull
+                }.joinToString("\n").ifBlank { null }
+            }
+            else -> null
+        }
+}
 
 @Serializable
 data class OpenRouterUsage(
