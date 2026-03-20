@@ -36,12 +36,12 @@ Vesper works with any model on [OpenRouter](https://openrouter.ai). For the best
 | Model | Why Use It | Speed | Cost |
 |-------|-----------|-------|------|
 | **`nousresearch/hermes-4`** | Outstanding tool-use and instruction following — purpose-built for agentic workflows like Vesper. Top pick for power users. | Fast | $$ |
-| **`anthropic/claude-opus-4`** | The most capable reasoning model available. Exceptional at complex multi-step Flipper operations and signal analysis. | Medium | $$$$ |
+| **`anthropic/claude-opus-4.6`** | The most capable reasoning model available. Exceptional at complex multi-step Flipper operations and signal analysis. | Medium | $$$$ |
 | **`anthropic/claude-sonnet-4`** | Best balance of speed, intelligence, and cost. Great default choice. | Fast | $$ |
 | **`anthropic/claude-haiku-4`** | Blazing fast for simple reads and quick commands. Cheapest option. | Fastest | $ |
 | **`openai/gpt-4o`** | Strong general-purpose alternative. | Fast | $$ |
 
-**Our recommendation:** Start with **Hermes 4** or **Claude Sonnet 4** for daily use. Reach for **Claude Opus 4** when you need deep reasoning — complex signal crafting, multi-step file operations, or creative BadUSB scripting.
+**Our recommendation:** Start with **Hermes 4** or **Claude Sonnet 4** for daily use. Reach for **Claude Opus 4.6** when you need deep reasoning — complex signal crafting, multi-step file operations, or creative BadUSB scripting.
 
 ---
 
