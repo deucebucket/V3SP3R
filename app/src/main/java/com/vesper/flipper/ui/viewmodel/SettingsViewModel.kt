@@ -26,6 +26,10 @@ data class SettingsState(
     val autoApproveHigh: Boolean = false,
     val auditRetentionDays: Int = 30,
     val activePermissions: List<Permission> = emptyList(),
+    // Provider mode (local LLM vs OpenRouter)
+    val providerMode: String = SettingsStore.DEFAULT_PROVIDER_MODE,
+    val localEndpointUrl: String = SettingsStore.DEFAULT_LOCAL_ENDPOINT_URL,
+    val localModelName: String = SettingsStore.DEFAULT_LOCAL_MODEL_NAME,
     // TTS (via OpenRouter — uses same API key)
     val ttsEnabled: Boolean = false,
     val ttsVoiceId: String = SettingsStore.DEFAULT_TTS_VOICE,
@@ -136,6 +140,24 @@ class SettingsViewModel @Inject constructor(
                     glassesSailorMouth = glasses.glassesSailorMouth,
                     glassesMuted = glasses.glassesMuted
                 )
+            }.combine(
+                combine(
+                    settingsStore.providerMode,
+                    settingsStore.localEndpointUrl,
+                    settingsStore.localModelName
+                ) { values ->
+                    LocalProviderBundle(
+                        providerMode = values[0] as String,
+                        localEndpointUrl = values[1] as String,
+                        localModelName = values[2] as String
+                    )
+                }
+            ) { base, local ->
+                base.copy(
+                    providerMode = local.providerMode,
+                    localEndpointUrl = local.localEndpointUrl,
+                    localModelName = local.localModelName
+                )
             }.collect { settings ->
                 _state.update { it.copy(
                     apiKey = settings.apiKey,
@@ -157,7 +179,10 @@ class SettingsViewModel @Inject constructor(
                     glassesAutoSend = settings.glassesAutoSend,
                     glassesAutoConnect = settings.glassesAutoConnect,
                     glassesSailorMouth = settings.glassesSailorMouth,
-                    glassesMuted = settings.glassesMuted
+                    glassesMuted = settings.glassesMuted,
+                    providerMode = settings.providerMode,
+                    localEndpointUrl = settings.localEndpointUrl,
+                    localModelName = settings.localModelName
                 )}
             }
         }
@@ -285,6 +310,28 @@ class SettingsViewModel @Inject constructor(
         permissionService.grantProjectScope(path)
     }
 
+    // Local LLM provider settings
+    fun setProviderMode(mode: String) {
+        viewModelScope.launch {
+            settingsStore.setProviderMode(mode)
+            _state.update { it.copy(providerMode = mode) }
+        }
+    }
+
+    fun setLocalEndpointUrl(url: String) {
+        viewModelScope.launch {
+            settingsStore.setLocalEndpointUrl(url)
+            _state.update { it.copy(localEndpointUrl = url) }
+        }
+    }
+
+    fun setLocalModelName(name: String) {
+        viewModelScope.launch {
+            settingsStore.setLocalModelName(name)
+            _state.update { it.copy(localModelName = name) }
+        }
+    }
+
     // TTS settings
     fun setTtsEnabled(enabled: Boolean) {
         viewModelScope.launch {
@@ -357,6 +404,12 @@ private data class TtsSettingsBundle(
     val ttsEnabled: Boolean,
     val ttsVoiceId: String,
     val ttsAutoSpeak: Boolean
+)
+
+private data class LocalProviderBundle(
+    val providerMode: String,
+    val localEndpointUrl: String,
+    val localModelName: String
 )
 
 private data class GlassesSettingsBundle(

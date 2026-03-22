@@ -52,6 +52,70 @@ fun SettingsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Provider Mode Section
+            item {
+                SettingsSection(title = "LLM Provider") {
+                    val isLocal = state.providerMode == "local"
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                if (isLocal) "Local LLM" else "OpenRouter",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                if (isLocal) "Using your own LLM server"
+                                else "Using OpenRouter cloud API",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isLocal,
+                            onCheckedChange = {
+                                viewModel.setProviderMode(if (it) "local" else "openrouter")
+                            }
+                        )
+                    }
+
+                    if (isLocal) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = state.localEndpointUrl,
+                            onValueChange = { viewModel.setLocalEndpointUrl(it) },
+                            label = { Text("Endpoint URL") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Text(
+                            text = "OpenAI-compatible endpoint (llama.cpp, Ollama, etc.)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.localModelName,
+                            onValueChange = { viewModel.setLocalModelName(it) },
+                            label = { Text("Model Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Text(
+                            text = "Model ID reported by your server (e.g. Qwen3.5-9B-Q4_K_M.gguf)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // API Configuration Section
             item {
                 SettingsSection(title = "API Configuration") {
