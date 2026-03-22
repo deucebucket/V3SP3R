@@ -166,6 +166,48 @@ class SettingsStore @Inject constructor(
         }
     }
 
+    // Provider mode: "openrouter" (cloud) or "local" (llama.cpp / OpenAI-compatible)
+    private val PROVIDER_MODE = stringPreferencesKey("provider_mode")
+
+    val providerMode: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[PROVIDER_MODE] ?: DEFAULT_PROVIDER_MODE
+    }
+
+    suspend fun setProviderMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PROVIDER_MODE] = mode
+        }
+    }
+
+    /** Convenience flow: true when the active provider is "local". */
+    val providerIsLocal: Flow<Boolean> = providerMode.map { it == "local" }
+
+    // Local LLM endpoint URL (OpenAI-compatible, e.g. llama.cpp)
+    private val LOCAL_ENDPOINT_URL = stringPreferencesKey("local_endpoint_url")
+
+    val localEndpointUrl: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[LOCAL_ENDPOINT_URL] ?: DEFAULT_LOCAL_ENDPOINT_URL
+    }
+
+    suspend fun setLocalEndpointUrl(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[LOCAL_ENDPOINT_URL] = url
+        }
+    }
+
+    // Local model name sent in requests (informational — llama.cpp ignores it)
+    private val LOCAL_MODEL_NAME = stringPreferencesKey("local_model_name")
+
+    val localModelName: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[LOCAL_MODEL_NAME] ?: DEFAULT_LOCAL_MODEL_NAME
+    }
+
+    suspend fun setLocalModelName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[LOCAL_MODEL_NAME] = name
+        }
+    }
+
     // Audit log retention (days)
     private val AUDIT_RETENTION_DAYS = intPreferencesKey("audit_retention_days")
 
@@ -308,6 +350,11 @@ class SettingsStore @Inject constructor(
         const val DEFAULT_AI_MAX_ITERATIONS = 10
         const val MIN_AI_MAX_ITERATIONS = 4
         const val MAX_AI_MAX_ITERATIONS = 20
+
+        // Local LLM provider defaults
+        const val DEFAULT_PROVIDER_MODE = "openrouter"
+        const val DEFAULT_LOCAL_ENDPOINT_URL = "http://192.168.1.100:8080/v1/chat/completions"
+        const val DEFAULT_LOCAL_MODEL_NAME = "local-model"
 
         // Used when fetching live catalog fails (offline/rate-limited).
         val FALLBACK_MODELS = listOf(

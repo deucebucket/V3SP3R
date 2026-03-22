@@ -63,6 +63,39 @@ class OpenRouterClient @Inject constructor(
         const val BACKOFF_MULTIPLIER = 2.0
     }
 
+    /**
+     * Build an HTTP request with the correct URL and auth headers for the
+     * active provider (OpenRouter or local LLM endpoint).
+     */
+    private suspend fun buildBaseRequest(body: RequestBody): Request {
+        val isLocal = settingsStore.providerMode.first() == "local"
+        val url = if (isLocal) settingsStore.localEndpointUrl.first() else OPENROUTER_API_URL
+        val apiKey = if (isLocal) LOCAL_DUMMY_KEY else (settingsStore.apiKey.first() ?: "")
+
+        return Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $apiKey")
+            .addHeader("Content-Type", "application/json")
+            .apply {
+                if (!isLocal) {
+                    addHeader("HTTP-Referer", "https://vesper.flipper.app")
+                    addHeader("X-Title", "Vesper Flipper Control")
+                }
+            }
+            .post(body)
+            .build()
+    }
+
+    /** Resolve the model ID to use for the current request. */
+    private suspend fun resolveModel(): String {
+        val isLocal = settingsStore.providerMode.first() == "local"
+        return if (isLocal) settingsStore.localModelName.first() else settingsStore.selectedModel.first()
+    }
+
+    /** True when the active provider is a local LLM endpoint. */
+    private suspend fun isLocalProvider(): Boolean =
+        settingsStore.providerMode.first() == "local"
+
     // Use centralized prompt system for consistency and maintainability
     private val baseSystemPrompt = VesperPrompts.SYSTEM_PROMPT
 
@@ -82,15 +115,20 @@ class OpenRouterClient @Inject constructor(
             )
         }
 
-        val apiKey = settingsStore.apiKey.first()
-            ?: return@withContext ChatCompletionResult.Error("OpenRouter API key not configured")
+        val isLocal = isLocalProvider()
+        val apiKey = if (isLocal) {
+            LOCAL_DUMMY_KEY
+        } else {
+            settingsStore.apiKey.first()
+                ?: return@withContext ChatCompletionResult.Error("OpenRouter API key not configured")
+        }
 
-        // Validate API key format
-        if (!InputValidator.isValidApiKey(apiKey)) {
+        // Validate API key format (skip for local — no real key needed)
+        if (!isLocal && !InputValidator.isValidApiKey(apiKey)) {
             return@withContext ChatCompletionResult.Error("Invalid API key format")
         }
 
-        val model = settingsStore.selectedModel.first()
+        val model = resolveModel()
 
         val compactMessages = trimConversationForRequest(messages)
 
@@ -98,9 +136,14 @@ class OpenRouterClient @Inject constructor(
         // calling chat(). If images somehow survive (e.g. direct chat() call), handle
         // them here as a safety net.
         val hasImages = compactMessages.any { !it.imageAttachments.isNullOrEmpty() }
-        val processedMessages = if (hasImages) {
+        val processedMessages = if (hasImages && !isLocal) {
             Log.w(TAG, "chat(): images still present at chat() entry — running safety-net preprocessing")
             preprocessImagesAsText(compactMessages, apiKey)
+        } else if (hasImages && isLocal) {
+            // Local models handle images directly if they support vision;
+            // otherwise strip attachments gracefully so the request doesn't fail.
+            Log.d(TAG, "chat(): local mode — passing images through for direct handling")
+            compactMessages
         } else {
             compactMessages
         }
@@ -118,7 +161,7 @@ class OpenRouterClient @Inject constructor(
             addAll(sanitizeAndBuildRequestMessages(processedMessages))
         }
 
-        val candidateModels = buildToolModelCandidates(model)
+        val candidateModels = buildToolModelCandidates(model, isLocal)
         var lastError: ChatCompletionResult.Error? = null
         val attemptedModels = mutableListOf<String>()
         val unsupportedModels = mutableListOf<String>()
@@ -245,9 +288,14 @@ class OpenRouterClient @Inject constructor(
         attachment: ImageAttachment,
         prompt: String
     ): String? = withContext(Dispatchers.IO) {
-        val apiKey = settingsStore.apiKey.first() ?: run {
-            Log.w(TAG, "describeImageForAgent: no API key configured")
-            return@withContext null
+        val isLocal = isLocalProvider()
+        val apiKey = if (isLocal) {
+            LOCAL_DUMMY_KEY
+        } else {
+            settingsStore.apiKey.first() ?: run {
+                Log.w(TAG, "describeImageForAgent: no API key configured")
+                return@withContext null
+            }
         }
 
         val visionMessages = listOf(
@@ -268,7 +316,10 @@ class OpenRouterClient @Inject constructor(
             )
         )
 
-        for (model in VISION_MODEL_CANDIDATES) {
+        // In local mode, use the single local model for vision
+        val visionModels = if (isLocal) listOf(resolveModel()) else VISION_MODEL_CANDIDATES
+
+        for (model in visionModels) {
             try {
                 Log.d(TAG, "describeImageForAgent: trying model $model")
                 val request = OpenRouterRequest(
@@ -282,14 +333,7 @@ class OpenRouterClient @Inject constructor(
                 val requestBody = json.encodeToString(request)
                     .toRequestBody("application/json".toMediaType())
 
-                val httpRequest = Request.Builder()
-                    .url(OPENROUTER_API_URL)
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("HTTP-Referer", "https://vesper.flipper.app")
-                    .addHeader("X-Title", "Vesper Flipper Control")
-                    .post(requestBody)
-                    .build()
+                val httpRequest = buildBaseRequest(requestBody)
 
                 val result = executeWithRetry(httpRequest)
                 when (result) {
@@ -344,7 +388,11 @@ class OpenRouterClient @Inject constructor(
             )
         )
 
-        for (model in VISION_MODEL_CANDIDATES) {
+        // In local mode, use the single local model for vision
+        val isLocal = isLocalProvider()
+        val visionModels = if (isLocal) listOf(resolveModel()) else VISION_MODEL_CANDIDATES
+
+        for (model in visionModels) {
             try {
                 Log.d(TAG, "describeImage: trying model $model")
 
@@ -359,14 +407,7 @@ class OpenRouterClient @Inject constructor(
                 val requestBody = json.encodeToString(request)
                     .toRequestBody("application/json".toMediaType())
 
-                val httpRequest = Request.Builder()
-                    .url(OPENROUTER_API_URL)
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("HTTP-Referer", "https://vesper.flipper.app")
-                    .addHeader("X-Title", "Vesper Flipper Control")
-                    .post(requestBody)
-                    .build()
+                val httpRequest = buildBaseRequest(requestBody)
 
                 val result = executeWithRetry(httpRequest)
                 when (result) {
@@ -399,10 +440,11 @@ class OpenRouterClient @Inject constructor(
     suspend fun chatSimple(prompt: String): String? = withContext(Dispatchers.IO) {
         if (!rateLimiter.tryAcquire()) return@withContext null
 
-        val apiKey = settingsStore.apiKey.first() ?: return@withContext null
-        if (!InputValidator.isValidApiKey(apiKey)) return@withContext null
+        val isLocal = isLocalProvider()
+        val apiKey = if (isLocal) LOCAL_DUMMY_KEY else (settingsStore.apiKey.first() ?: return@withContext null)
+        if (!isLocal && !InputValidator.isValidApiKey(apiKey)) return@withContext null
 
-        val model = settingsStore.selectedModel.first()
+        val model = resolveModel()
         val messages = listOf(
             OpenRouterMessage.text(role = "user", content = prompt)
         )
@@ -418,14 +460,7 @@ class OpenRouterClient @Inject constructor(
         val requestBody = json.encodeToString(request)
             .toRequestBody("application/json".toMediaType())
 
-        val httpRequest = Request.Builder()
-            .url(OPENROUTER_API_URL)
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("HTTP-Referer", "https://vesper.flipper.app")
-            .addHeader("X-Title", "Vesper Flipper Control")
-            .post(requestBody)
-            .build()
+        val httpRequest = buildBaseRequest(requestBody)
 
         val result = executeWithRetry(httpRequest)
         when (result) {
@@ -434,7 +469,7 @@ class OpenRouterClient @Inject constructor(
         }
     }
 
-    private fun buildToolCallingRequest(
+    private suspend fun buildToolCallingRequest(
         apiKey: String,
         model: String,
         messages: List<OpenRouterMessage>,
@@ -452,14 +487,7 @@ class OpenRouterClient @Inject constructor(
         val requestBody = json.encodeToString(request)
             .toRequestBody("application/json".toMediaType())
 
-        return Request.Builder()
-            .url(OPENROUTER_API_URL)
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("HTTP-Referer", "https://vesper.flipper.app")
-            .addHeader("X-Title", "Vesper Flipper Control")
-            .post(requestBody)
-            .build()
+        return buildBaseRequest(requestBody)
     }
 
     /**
@@ -1275,13 +1303,18 @@ class OpenRouterClient @Inject constructor(
             return@withContext Result.failure(Exception("Rate limit exceeded"))
         }
 
-        val apiKey = settingsStore.apiKey.first()
-            ?: return@withContext Result.failure(Exception("API key not configured"))
-        if (!InputValidator.isValidApiKey(apiKey)) {
+        val isLocal = isLocalProvider()
+        val apiKey = if (isLocal) {
+            LOCAL_DUMMY_KEY
+        } else {
+            settingsStore.apiKey.first()
+                ?: return@withContext Result.failure(Exception("API key not configured"))
+        }
+        if (!isLocal && !InputValidator.isValidApiKey(apiKey)) {
             return@withContext Result.failure(Exception("Invalid API key format"))
         }
 
-        val model = settingsStore.selectedModel.first()
+        val model = resolveModel()
 
         val compactMessages = trimConversationForRequest(messages)
         val requestMessages = buildList {
@@ -1303,14 +1336,7 @@ class OpenRouterClient @Inject constructor(
         val requestBody = json.encodeToString(request)
             .toRequestBody("application/json".toMediaType())
 
-        val httpRequest = Request.Builder()
-            .url(OPENROUTER_API_URL)
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("HTTP-Referer", "https://vesper.flipper.app")
-            .addHeader("X-Title", "Vesper Flipper Control")
-            .post(requestBody)
-            .build()
+        val httpRequest = buildBaseRequest(requestBody)
 
         when (val result = executeWithRetry(httpRequest)) {
             is ChatCompletionResult.Success -> Result.success(result.content)
@@ -1352,7 +1378,10 @@ class OpenRouterClient @Inject constructor(
                 normalized.contains("access denied")
     }
 
-    private fun buildToolModelCandidates(selectedModel: String): List<String> {
+    private fun buildToolModelCandidates(selectedModel: String, isLocal: Boolean = false): List<String> {
+        // In local mode, there's only one model — no fallback chain
+        if (isLocal) return listOf(selectedModel)
+
         val fallbackModels = TOOL_USE_FALLBACK_MODELS + SettingsStore.FALLBACK_MODELS.map { it.id }
         return (listOf(selectedModel) + fallbackModels)
             .map { it.trim() }
@@ -1388,8 +1417,10 @@ class OpenRouterClient @Inject constructor(
     companion object {
         private const val TAG = "OpenRouterClient"
         private const val OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+        /** Dummy API key sent to local endpoints (llama.cpp ignores auth). */
+        private const val LOCAL_DUMMY_KEY = "sk-local"
         private const val DNS_RESOLUTION_ERROR_MESSAGE =
-            "Cannot resolve openrouter.ai (DNS/network issue). Verify internet access, disable broken Private DNS/VPN, then retry."
+            "Cannot resolve API host (DNS/network issue). Verify internet/network access, disable broken Private DNS/VPN, then retry."
         private const val EXPECTED_TOOL_ARGUMENTS_FORMAT =
             """{"action":"<action>","args":{...},"justification":"...","expected_effect":"..."}"""
         private const val MAX_TOOL_MODEL_CANDIDATES = 10

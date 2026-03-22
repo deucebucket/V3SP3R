@@ -1,6 +1,7 @@
 package com.vesper.flipper.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -21,7 +22,9 @@ import javax.inject.Singleton
  * for each major manufacturer/provider used by the app.
  */
 @Singleton
-class OpenRouterModelCatalog @Inject constructor() {
+class OpenRouterModelCatalog @Inject constructor(
+    private val settingsStore: SettingsStore
+) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -32,6 +35,20 @@ class OpenRouterModelCatalog @Inject constructor() {
         .build()
 
     suspend fun fetchLatestByManufacturer(): Result<List<ModelInfo>> = withContext(Dispatchers.IO) {
+        // In local mode, skip the OpenRouter catalog entirely and return
+        // a single entry representing the configured local model.
+        if (settingsStore.providerMode.first() == "local") {
+            val localName = settingsStore.localModelName.first()
+            val localUrl = settingsStore.localEndpointUrl.first()
+            return@withContext Result.success(listOf(
+                ModelInfo(
+                    id = localName,
+                    displayName = localName,
+                    description = "Local LLM at $localUrl"
+                )
+            ))
+        }
+
         try {
             val request = Request.Builder()
                 .url(MODELS_URL)
