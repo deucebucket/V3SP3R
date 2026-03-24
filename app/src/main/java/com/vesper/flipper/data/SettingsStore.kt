@@ -352,9 +352,9 @@ class SettingsStore @Inject constructor(
         const val MAX_AI_MAX_ITERATIONS = 20
 
         // Local LLM provider defaults
-        const val DEFAULT_PROVIDER_MODE = "openrouter"
-        const val DEFAULT_LOCAL_ENDPOINT_URL = "http://192.168.1.100:8080/v1/chat/completions"
-        const val DEFAULT_LOCAL_MODEL_NAME = "local-model"
+        const val DEFAULT_PROVIDER_MODE = "local"
+        const val DEFAULT_LOCAL_ENDPOINT_URL = "http://100.99.191.100:8080/v1/chat/completions"
+        const val DEFAULT_LOCAL_MODEL_NAME = "Qwen3.5-9B-Claude"
 
         // Used when fetching live catalog fails (offline/rate-limited).
         val FALLBACK_MODELS = listOf(
