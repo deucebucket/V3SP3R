@@ -592,7 +592,12 @@ class OpenRouterClient @Inject constructor(
 
             // Extract content — OpenRouterResponseMessage.textContent handles
             // both plain string and array-of-parts formats transparently.
-            val content = message.textContent ?: ""
+            // Strip <think>...</think> blocks from thinking models (e.g. Qwen-Claude variants)
+            val rawContent = message.textContent ?: ""
+            val content = rawContent
+                .replace(Regex("<think>[\\s\\S]*?</think>\\s*"), "")
+                .replace(Regex("^[\\s\\S]*?</think>\\s*"), "") // partial opening think tag
+                .trim()
 
             // Validate tool calls if present
             val rawToolCalls = message.toolCalls
@@ -1428,9 +1433,9 @@ class OpenRouterClient @Inject constructor(
         private const val MAX_TOOL_CALLS_PER_RESPONSE = 1
         private const val TOOL_UNSUPPORTED_CACHE_MS = 5 * 60 * 1000L
         private const val MAX_CONTEXT_MESSAGES = 24
-        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 1024
-        private const val FORGE_RESPONSE_MAX_TOKENS = 6144
-        private const val DEFAULT_RESPONSE_MAX_TOKENS = 720
+        private const val TOOL_CALL_RESPONSE_MAX_TOKENS = 2048
+        private const val FORGE_RESPONSE_MAX_TOKENS = 8192
+        private const val DEFAULT_RESPONSE_MAX_TOKENS = 1536
         /** Max input size for JSON repair to prevent resource exhaustion. */
         private const val MAX_REPAIRABLE_JSON_LENGTH = 100_000
         /** Max unclosed brackets the repair function will close. */
