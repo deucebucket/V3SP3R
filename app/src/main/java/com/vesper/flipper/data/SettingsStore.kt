@@ -354,7 +354,7 @@ class SettingsStore @Inject constructor(
         // Local LLM provider defaults
         const val DEFAULT_PROVIDER_MODE = "local"
         const val DEFAULT_LOCAL_ENDPOINT_URL = "http://100.99.191.100:8080/v1/chat/completions"
-        const val DEFAULT_LOCAL_MODEL_NAME = "Qwen3.5-9B-Claude"
+        const val DEFAULT_LOCAL_MODEL_NAME = "default"
 
         // Used when fetching live catalog fails (offline/rate-limited).
         val FALLBACK_MODELS = listOf(
@@ -377,6 +377,19 @@ class SettingsStore @Inject constructor(
             availableModels: List<ModelInfo> = FALLBACK_MODELS
         ): String {
             return availableModels.find { it.id == modelId }?.displayName ?: modelId
+        }
+    }
+
+    // delphinOS firmware mode — auto-detect, force JSON-RPC, or force legacy protobuf
+    private val FIRMWARE_MODE = stringPreferencesKey("firmware_mode")
+
+    val firmwareMode: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[FIRMWARE_MODE] ?: "auto"
+    }
+
+    suspend fun setFirmwareMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[FIRMWARE_MODE] = mode
         }
     }
 }
