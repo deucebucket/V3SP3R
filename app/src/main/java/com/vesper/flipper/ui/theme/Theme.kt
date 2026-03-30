@@ -14,73 +14,82 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // ═══════════════════════════════════════════════════════════
-// VESPER BRAND — Classy Mythic Cyberpunk Bond
+// delphinOS BRAND — Cybernetic Orange on Black
+// Matches the Flipper Zero LCD aesthetic (orange on dark)
 // ═══════════════════════════════════════════════════════════
 
-// Primary: Wine Red — the blood of the machine
-val VesperWine = Color(0xFF8B2038)           // True wine / claret red
-val VesperWineLight = Color(0xFFAD3B50)      // Lighter wine for highlights
-val VesperWineDark = Color(0xFF5E1625)        // Darker wine for pressed states
+// Primary: Flipper Orange — the signal, the eye, the circuit glow
+val DelphinOrange = Color(0xFFFF8800)           // Classic Flipper orange
+val DelphinOrangeLight = Color(0xFFFFAA33)      // Lighter for highlights
+val DelphinOrangeDark = Color(0xFFCC6600)       // Darker for pressed states
+val DelphinAmber = Color(0xFFFFAA00)            // Warm amber for accents
 
-// Legacy alias — keeps existing references working
-val VesperOrange = VesperWine
-val VesperOrangeDark = VesperWineDark
+// Legacy aliases — keeps existing references working
+val VesperWine = DelphinOrange
+val VesperWineLight = DelphinOrangeLight
+val VesperWineDark = DelphinOrangeDark
+val VesperOrange = DelphinOrange
+val VesperOrangeDark = DelphinOrangeDark
 
-// Secondary: Gunmetal — cold steel sophistication
-val VesperSecondary = Color(0xFF1A1F2E)       // Gunmetal blue-black
-val VesperGunmetal = Color(0xFF2A3142)         // Lighter gunmetal
+// Secondary: Deep Black — the void behind the signal
+val DelphinBlack = Color(0xFF0A0A14)            // Near-black with blue hint
+val DelphinGunmetal = Color(0xFF1A1A2E)         // Matches simulator background
+val VesperSecondary = DelphinBlack
+val VesperGunmetal = DelphinGunmetal
 
-// Accent: Champagne Gold — old money elegance
-val VesperAccent = Color(0xFFD4AF37)           // Champagne gold
-val VesperGold = Color(0xFFD4AF37)
-val VesperGoldMuted = Color(0xFF9E8530)        // Muted gold for secondary accents
+// Accent: Cyan — sonar ping, data flow, neural network
+val DelphinCyan = Color(0xFF00CCFF)             // Electric cyan
+val DelphinCyanDim = Color(0xFF0088AA)          // Dimmed for secondary
+val VesperAccent = DelphinCyan
+val VesperGold = DelphinCyan
+val VesperGoldMuted = DelphinCyanDim
 
-// Surface Colors — deep noir palette
-val VesperSurface = Color(0xFF0E1118)
-val VesperSurfaceVariant = Color(0xFF161B28)
-val VesperBackground = Color(0xFF060810)
-val VesperBackgroundDeep = Color(0xFF030508)
-val VesperBackgroundGlow = Color(0xFF0D0A14)   // Very subtle wine tint
+// Surface Colors — deep black palette
+val VesperSurface = Color(0xFF0E0E1A)
+val VesperSurfaceVariant = Color(0xFF141428)
+val VesperBackground = Color(0xFF060610)
+val VesperBackgroundDeep = Color(0xFF030308)
+val VesperBackgroundGlow = Color(0xFF0D0A10)
 
 val VesperBackdropBrush = Brush.verticalGradient(
     colors = listOf(
         VesperBackground,
         VesperBackgroundDeep,
-        VesperBackgroundGlow,
+        Color(0xFF0A0814),  // Subtle orange tint in the depths
         VesperBackground
     )
 )
 
-// Risk Colors — refined
+// Risk Colors
 val RiskLow = Color(0xFF4CAF7D)
-val RiskMedium = Color(0xFFD4AF37)   // Gold for medium — on brand
-val RiskHigh = Color(0xFFCF4455)     // Wine-adjacent red
+val RiskMedium = DelphinAmber
+val RiskHigh = Color(0xFFFF4444)
 val RiskBlocked = Color(0xFF6B7394)
 
 // Diff Colors
 val DiffAdded = Color(0xFF3CBF88)
-val DiffRemoved = Color(0xFFCF4455)
-val DiffChanged = Color(0xFFD4AF37)
+val DiffRemoved = Color(0xFFFF4444)
+val DiffChanged = DelphinAmber
 val DiffAddedBackground = Color(0x403CBF88)
-val DiffRemovedBackground = Color(0x40CF4455)
+val DiffRemovedBackground = Color(0x40FF4444)
 
-// Chat Colors — distinct from system
-val ChatAssistant = Color(0xFF161B28)       // Dark gunmetal bubble
-val ChatUser = VesperWine                    // Wine bubble for user
-val ChatTool = Color(0xFF121620)             // Even darker for tool results
-val ChatToolAccent = VesperGold              // Gold for tool highlights
+// Chat Colors
+val ChatAssistant = Color(0xFF141428)           // Dark surface bubble
+val ChatUser = DelphinOrangeDark                // Orange bubble for user
+val ChatTool = Color(0xFF0A0A18)                // Even darker for tool results
+val ChatToolAccent = DelphinCyan                // Cyan for tool highlights
 
 private val DarkColorScheme = darkColorScheme(
-    primary = VesperWine,
-    onPrimary = Color(0xFFF5E6EC),
-    primaryContainer = VesperWineDark,
-    onPrimaryContainer = Color(0xFFF8E0EC),
-    secondary = VesperSecondary,
-    onSecondary = Color(0xFFCAD0E0),
+    primary = DelphinOrange,
+    onPrimary = Color(0xFF1A0E00),
+    primaryContainer = DelphinOrangeDark,
+    onPrimaryContainer = Color(0xFFFFF0DD),
+    secondary = DelphinBlack,
+    onSecondary = Color(0xFFCCD0E0),
     secondaryContainer = VesperSurfaceVariant,
     onSecondaryContainer = Color(0xFFD5DEF0),
-    tertiary = VesperGold,
-    onTertiary = Color(0xFF1A1508),
+    tertiary = DelphinCyan,
+    onTertiary = Color(0xFF001A22),
     background = VesperBackground,
     onBackground = Color(0xFFE6E8F0),
     surface = VesperSurface,
@@ -94,16 +103,16 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = VesperWine,
+    primary = DelphinOrangeDark,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFF5D6E4),
-    onPrimaryContainer = Color(0xFF4D1830),
-    secondary = VesperSecondary,
+    primaryContainer = Color(0xFFFFE0B2),
+    onPrimaryContainer = Color(0xFF4D2800),
+    secondary = DelphinBlack,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDCE0F0),
-    onSecondaryContainer = Color(0xFF1A1F2E),
-    tertiary = VesperGold,
-    onTertiary = Color(0xFF1A1508),
+    secondaryContainer = Color(0xFFE0E0F0),
+    onSecondaryContainer = Color(0xFF1A1A2E),
+    tertiary = DelphinCyanDim,
+    onTertiary = Color.White,
     background = Color(0xFFF4F2F5),
     onBackground = Color(0xFF121520),
     surface = Color.White,
@@ -116,7 +125,7 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
-private val VesperShapes = Shapes(
+private val DelphinShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
@@ -128,28 +137,28 @@ private val BaseTypography = androidx.compose.material3.Typography()
 
 val VesperTypography = BaseTypography.copy(
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Light,
-        fontSize = 52.sp,
-        letterSpacing = 1.2.sp
+        fontSize = 48.sp,
+        letterSpacing = 1.5.sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
-        letterSpacing = 0.6.sp
+        fontSize = 28.sp,
+        letterSpacing = 0.8.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Normal,
-        fontSize = 21.sp,
-        letterSpacing = 0.3.sp
+        fontSize = 20.sp,
+        letterSpacing = 0.4.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        letterSpacing = 0.2.sp
+        letterSpacing = 0.3.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -188,12 +197,13 @@ fun VesperTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    // delphinOS is always dark — matches the Flipper LCD aesthetic
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = VesperTypography,
-        shapes = VesperShapes,
+        shapes = DelphinShapes,
         content = content
     )
 }

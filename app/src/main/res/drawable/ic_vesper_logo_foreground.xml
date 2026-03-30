@@ -5,63 +5,160 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer barrel ring — thin wine red stroke -->
+    <!-- === DOLPHIN SILHOUETTE (simplified profile, facing right) === -->
+    <!-- This is the recognizable dolphin shape that says "delphinOS" -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FF8B2038"
-        android:strokeWidth="1.8"
-        android:pathData="M54,14 A40,40 0 1,1 53.99,14 Z" />
+        android:fillColor="#FFFF8800"
+        android:pathData="
+            M30,38
+            Q28,32 32,28
+            Q38,22 46,20
+            Q52,18 58,20
+            Q64,22 68,26
+            Q74,32 78,38
+            Q80,42 82,44
+            L80,46
+            Q76,44 72,44
+            Q68,46 64,48
+            Q56,50 48,50
+            Q40,48 34,46
+            Q30,44 30,38
+            Z" />
 
-    <!-- Inner rifling ring 1 -->
+    <!-- Dolphin eye cutout -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#448B2038"
-        android:strokeWidth="0.8"
-        android:pathData="M54,22 A32,32 0 1,1 53.99,22 Z" />
+        android:fillColor="#FF060610"
+        android:pathData="M58,30 A5,5 0 1,1 57.99,30 Z" />
 
-    <!-- Inner rifling ring 2 — tighter -->
+    <!-- Digital pupil inside eye -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#288B2038"
+        android:fillColor="#FFFF8800"
+        android:pathData="M56,29 L60,29 L60,32 L56,32 Z" />
+
+    <!-- Scan line through eye -->
+    <path
+        android:fillColor="#FF060610"
+        android:strokeColor="#FF060610"
         android:strokeWidth="0.5"
-        android:pathData="M54,28 A26,26 0 1,1 53.99,28 Z" />
+        android:pathData="M53,30.5 L63,30.5" />
 
-    <!-- Rifling groove — diagonal line 1 (top-right to bottom-left) -->
+    <!-- Dorsal fin -->
+    <path
+        android:fillColor="#FFFF8800"
+        android:pathData="M40,28 L36,18 L44,22 Z" />
+
+    <!-- Mouth line -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#208B2038"
+        android:strokeColor="#FF060610"
+        android:strokeWidth="0.8"
+        android:pathData="M68,40 Q75,42 80,44" />
+
+    <!-- Cybernetic plate seams on head -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CC6600"
+        android:strokeWidth="0.6"
+        android:pathData="M48,24 L56,28" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CC6600"
+        android:strokeWidth="0.6"
+        android:pathData="M62,26 L66,32" />
+
+    <!-- === SONAR ARCS emanating from snout === -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CCFF8800"
+        android:strokeWidth="1.2"
+        android:pathData="M84,38 Q90,44 84,50" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#88FF8800"
+        android:strokeWidth="1.0"
+        android:pathData="M88,34 Q96,44 88,54" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#44FF8800"
+        android:strokeWidth="0.8"
+        android:pathData="M92,30 Q102,44 92,58" />
+
+    <!-- === CIRCUIT TRACES radiating from body === -->
+    <!-- Trace going down-left from body (to represent hardware control) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#88FF8800"
+        android:strokeWidth="0.8"
+        android:pathData="M36,46 L28,54 L28,66" />
+    <!-- Trace node dots -->
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M28,54 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M28,66 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Trace going down from body -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#88FF8800"
+        android:strokeWidth="0.8"
+        android:pathData="M50,50 L50,62 L44,70" />
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M50,62 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M44,70 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Trace going down-right -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#88FF8800"
+        android:strokeWidth="0.8"
+        android:pathData="M64,48 L70,58 L68,70" />
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M70,58 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+    <path android:fillColor="#FFFF8800"
+        android:pathData="M68,70 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Cross-connections between circuit traces -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#44FF8800"
+        android:strokeWidth="0.5"
+        android:pathData="M28,66 L44,70 L68,70" />
+
+    <!-- === NEURAL DOTS above and behind dolphin === -->
+    <path android:fillColor="#66FF8800"
+        android:pathData="M22,30 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#44FF8800"
+        android:pathData="M18,36 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#66FF8800"
+        android:pathData="M24,22 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#33FF8800"
+        android:pathData="M16,28 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#44FF8800"
+        android:pathData="M20,18 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+
+    <!-- Neural connector lines -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#33FF8800"
         android:strokeWidth="0.4"
-        android:pathData="M74,20 L34,88" />
-
-    <!-- Rifling groove — diagonal line 2 (top-left to bottom-right) -->
+        android:pathData="M24,22 L22,30 L18,36" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#208B2038"
+        android:strokeColor="#22FF8800"
         android:strokeWidth="0.4"
-        android:pathData="M34,20 L74,88" />
+        android:pathData="M20,18 L16,28 L22,30" />
 
-    <!-- Rifling groove — vertical crosshair -->
+    <!-- === "dO" text mark bottom right === -->
+    <path
+        android:fillColor="#66FF8800"
+        android:pathData="
+            M72,78 L72,88 L76,88 Q79,88 79,84 Q79,80 76,78 Z
+            M74,80 L76,80 Q77,80 77,84 Q77,86 76,86 L74,86 Z" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#188B2038"
-        android:strokeWidth="0.3"
-        android:pathData="M54,14 L54,94" />
-
-    <!-- Rifling groove — horizontal crosshair -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#188B2038"
-        android:strokeWidth="0.3"
-        android:pathData="M14,54 L94,54" />
-
-    <!-- V letterform — sleek, sharp, wine red -->
-    <path
-        android:fillColor="#FF8B2038"
-        android:pathData="M40,34 L46,34 L54,62 L62,34 L68,34 L56,80 L52,80 Z" />
-
-    <!-- V left edge — subtle champagne gold reflection -->
-    <path
-        android:fillColor="#20D4AF37"
-        android:pathData="M42,37 L45,37 L53,66 L51,66 Z" />
+        android:strokeColor="#66FF8800"
+        android:strokeWidth="1.2"
+        android:pathData="M82,80 A4,4 0 1,1 81.99,80 Z" />
 
 </vector>
