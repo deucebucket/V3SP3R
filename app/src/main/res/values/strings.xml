@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Vesper</string>
-    <string name="app_description">AI-Driven Flipper Control</string>
+    <string name="app_name">delphinOS</string>
+    <string name="app_description">AI Companion for Flipper Zero</string>
 
     <!-- Navigation -->
     <string name="nav_chat">Chat</string>
@@ -18,7 +18,7 @@
     <string name="ble_error">Connection error: %s</string>
 
     <!-- Chat -->
-    <string name="chat_hint">Ask Vesper to control your Flipper…</string>
+    <string name="chat_hint">Talk to your Flipper…</string>
     <string name="chat_send">Send</string>
     <string name="chat_thinking">Thinking…</string>
 
@@ -64,7 +64,7 @@
 
     <!-- Widget -->
     <string name="widget_description">Quick-launch signals from your home screen</string>
-    <string name="widget_name">Vesper Signals</string>
+    <string name="widget_name">delphinOS Signals</string>
     <string name="widget_signals_title">⚡ Signals</string>
     <string name="widget_refresh">Refresh</string>
     <string name="widget_signal_1">Signal 1</string>
